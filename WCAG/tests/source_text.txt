@@ -1,0 +1,5 @@
+SiteLens Content Checker Test
+
+This is the first paragraph. It exists in both the HTML page and the source text file. It should be highlighted in GREEN indicating a match.
+
+This is the final paragraph. It also matches the source text perfectly.

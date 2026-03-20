@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Checker Test Page</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        p {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>SiteLens Content Checker Test</h1>
+
+    <p>This is the first paragraph. It exists in both the HTML page and the source text file. It should be highlighted
+        in GREEN indicating a match.</p>
+
+    <p>This is an extra paragraph! This text exists ONLY on this web page but is missing from the source text file. The
+        Content Checker should detect this as "Extra" content and highlight it in RED.</p>
+
+    <p>This is the final paragraph. It also matches the source text perfectly.</p>
+</body>
+
+</html>

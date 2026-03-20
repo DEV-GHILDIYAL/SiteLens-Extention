@@ -1,0 +1,54 @@
+# --- OS files ---
+.DS_Store
+Thumbs.db
+*.swp
+desktop.ini
+
+# --- IDEs ---
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# --- Node.js / Build Tools ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+.npm/
+.eslintcache
+.prettiercache
+
+# --- Build Artifacts ---
+dist/
+build/
+out/
+*.zip
+*.crx
+*.xpi
+
+# --- Environment Secrets ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.sample
+!.env.example
+
+# --- Testing ---
+coverage/
+.nyc_output/
+
+# --- Misc ---
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*

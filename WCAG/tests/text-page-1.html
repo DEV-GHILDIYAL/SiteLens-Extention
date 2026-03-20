@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Urban Groom | Premium Saloon</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #d4af37; /* Gold */
+            --dark: #0f0f0f;
+            --light: #ffffff;
+            --grey: #1e1e1e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--dark);
+            color: var(--light);
+        }
+
+        /* --- Header --- */
+        header {
+            background: rgba(15, 15, 15, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1.2rem 8%;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+
+        nav ul li { margin-left: 30px; }
+
+        nav ul li a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+
+        nav ul li a:hover { color: var(--primary); }
+
+        /* --- Hero Section --- */
+        .hero {
+            height: 100vh;
+            background: linear-gradient(to right, rgba(0,0,0,0.8), rgba(0,0,0,0.3)), 
+                        url('https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=1350&q=80');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            padding: 0 10%;
+        }
+
+        .hero-content { max-width: 600px; }
+
+        .hero-content h1 {
+            font-size: 4rem;
+            line-height: 1.1;
+            margin-bottom: 20px;
+        }
+
+        .hero-content span { color: var(--primary); }
+
+        .btn-main {
+            display: inline-block;
+            background: var(--primary);
+            color: #000;
+            padding: 15px 40px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 700;
+            margin-top: 25px;
+            transition: 0.4s;
+            border: 2px solid var(--primary);
+        }
+
+        .btn-main:hover {
+            background: transparent;
+            color: var(--primary);
+        }
+
+        /* --- Services --- */
+        .section-padding { padding: 100px 10%; }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-title h2 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .section-title .bar {
+            width: 80px;
+            height: 4px;
+            background: var(--primary);
+            margin: 0 auto;
+        }
+
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+
+        .service-card {
+            background: var(--grey);
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            transition: 0.4s;
+            border: 1px solid #333;
+        }
+
+        .service-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-10px);
+        }
+
+        .service-card i {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+
+        /* --- Pricing Section --- */
+        .pricing { background: #0a0a0a; }
+
+        .price-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid #222;
+        }
+
+        .price-name { font-weight: 500; font-size: 1.1rem; }
+        .price-val { color: var(--primary); font-weight: 700; }
+
+        /* --- Appointment & Contact --- */
+        .contact-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: center;
+        }
+
+        .contact-info i { color: var(--primary); margin-right: 15px; }
+        .contact-info p { margin-bottom: 20px; font-size: 1.1rem; }
+
+        /* --- Floating Call Button --- */
+        .floating-call {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #25d366; /* WhatsApp Green or use Primary */
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+            text-decoration: none;
+        }
+
+        /* --- Footer --- */
+        footer {
+            padding: 50px 10%;
+            border-top: 1px solid #222;
+            text-align: center;
+        }
+
+        .social-links a {
+            color: #fff;
+            font-size: 1.5rem;
+            margin: 0 15px;
+            transition: 0.3s;
+        }
+
+        .social-links a:hover { color: var(--primary); }
+
+        /* Mobile View */
+        @media (max-width: 768px) {
+            .hero-content h1 { font-size: 2.5rem; }
+            header { padding: 1rem 5%; }
+            nav { display: none; }
+            .contact-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">URBAN GROOM</div>
+        <nav>
+            <ul>
+                <li><a href="#home">Home</a></li>
+                <li><a href="#services">Services</a></li>
+                <li><a href="#pricing">Price List</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <a href="tel:+919876543210" class="floating-call">
+        <i class="fas fa-phone"></i>
+    </a>
+
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <h1>Elevate Your <span>Style</span>, Elevate Your Confidence.</h1>
+            <p>Experience the finest grooming services in town. From classic cuts to modern styling, we do it all with precision.</p>
+            <a href="#contact" class="btn-main">Book Your Chair Now</a>
+        </div>
+    </section>
+
+    <section class="section-padding" id="services">
+        <div class="section-title">
+            <h2>Our Expertise</h2>
+            <div class="bar"></div>
+        </div>
+        <div class="service-grid">
+            <div class="service-card">
+                <i class="fas fa-cut"></i>
+                <h3>Hair Styling</h3>
+                <p>Master barbers for your unique look and personality.</p>
+            </div>
+            <div class="service-card">
+                <i class="fas fa-magic"></i>
+                <h3>Beard Sculpting</h3>
+                <p>Hot towel shaves and precision beard trimming.</p>
+            </div>
+            <div class="service-card">
+                <i class="fas fa-spa"></i>
+                <h3>Skin Therapy</h3>
+                <p>Premium facials and detan treatments for men.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section-padding pricing" id="pricing">
+        <div class="section-title">
+            <h2>Service Menu</h2>
+            <div class="bar"></div>
+        </div>
+        <div style="max-width: 700px; margin: 0 auto;">
+            <div class="price-row"><span class="price-name">Executive Haircut</span><span class="price-val">₹250</span></div>
+            <div class="price-row"><span class="price-name">Beard Trim & Shape</span><span class="price-val">₹150</span></div>
+            <div class="price-row"><span class="price-name">Signature Hair Color</span><span class="price-val">₹600</span></div>
+            <div class="price-row"><span class="price-name">Charcoal Facial</span><span class="price-val">₹450</span></div>
+            <div class="price-row"><span class="price-name">Head & Shoulder Massage</span><span class="price-val">₹300</span></div>
+            <div class="price-row" style="border: none;"><span class="price-name">The Wedding Package</span><span class="price-val">₹1999</span></div>
+        </div>
+    </section>
+
+    <section class="section-padding" id="contact">
+        <div class="contact-container">
+            <div class="contact-info">
+                <h2>Visit The Shop</h2>
+                <div class="bar" style="margin-left: 0; margin-bottom: 30px;"></div>
+                <p><i class="fas fa-map-marker-alt"></i> Shop No. 12, Gold Plaza, Andheri West, Mumbai</p>
+                <p><i class="fas fa-clock"></i> Mon - Sun: 10:00 AM - 10:00 PM</p>
+                <p><i class="fas fa-envelope"></i> hello@urbangroom.com</p>
+                <div class="social-links" style="text-align: left; margin-top: 30px;">
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-google"></i></a>
+                </div>
+            </div>
+            <div class="map-box">
+                <iframe 
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3770.000000000000!2d72.8!3d19.1!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTnCsDA2JzAwLjAiTiA3MsKwNDgnMDAuMCJF!5e0!3m2!1sen!2sin!4v1620000000000" 
+                    width="100%" height="300" style="border-radius:15px; border:0;" allowfullscreen="" loading="lazy">
+                </iframe>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2026 Urban Groom Saloon. Crafted for Style.</p>
+    </footer>
+
+</body>
+</html>

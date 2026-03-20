@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Lorem Ipsum Test</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 40px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Lorem Ipsum Detection Test</h1>
+
+    <p>This is normal text.</p>
+
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+
+    <div>
+        Some more normal text.
+        <span>Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</span>
+    </div>
+
+    <!-- Hidden text should be ignored (or not? check logic) - Logic says ignored if display:none -->
+    <div class="hidden">
+        Hidden lorem ipsum text.
+    </div>
+</body>
+
+</html>

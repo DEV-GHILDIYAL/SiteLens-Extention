@@ -1,0 +1,69 @@
+{
+    "manifest_version": 3,
+    "name": "SiteLens",
+    "version": "0.2.15",
+    "description": "SiteLens - Comprehensive WCAG compliance, contrast analyzer, and design audit tool. Developed by DEV GHILDIYAL.",
+    "author": "DEV GHILDIYAL",
+    "permissions": [
+        "activeTab",
+        "storage",
+        "scripting",
+        "contextMenus",
+        "downloads",
+        "sidePanel"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "background": {
+        "service_worker": "src/background/background.js",
+        "type": "module"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "src/utils/color-utils.js",
+                "src/utils/wcag-calculator.js",
+                "src/utils/canvas-processor.js",
+                "src/utils/background-sampler.js",
+                "src/utils/text-detector.js",
+                "src/utils/dom-traverser.js",
+                "src/utils/storage-manager.js",
+                "src/utils/report-generator.js",
+                "src/utils/contrast-analyzer.js",
+                "src/utils/font-analyzer.js",
+                "src/utils/button-analyzer.js",
+                "src/utils/image-analyzer.js",
+                "src/utils/color-analyzer.js",
+                "src/utils/seo-analyzer.js",
+                "src/utils/content-analyzer.js",
+                "src/utils/link-analyzer.js",
+                "src/content/overlay.js",
+                "src/content/content.js"
+            ],
+            "css": [
+                "src/content/overlay.css"
+            ],
+            "run_at": "document_idle"
+        }
+    ],
+    "action": {
+        "default_title": "Open SiteLens",
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        }
+    },
+    "side_panel": {
+        "default_path": "src/sidepanel/sidepanel.html"
+    },
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    }
+}

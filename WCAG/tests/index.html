@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- SEO Audit Tests: Title too long (>60 chars) and Description too short (<50 chars) -->
+    <title>Complete Website Audit Test Suite - Testing All Features Compatibility and Design System - Premium Edition
+    </title>
+    <meta name="description" content="Test page for website audit extension features.">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #ec4899;
+            --dark: #0f172a;
+            --light: #f8fafc;
+            --text: #334155;
+            --text-light: #64748b;
+            --card-bg: #ffffff;
+            --border: #e2e8f0;
+            --radius: 16px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            background: #f1f5f9;
+            color: var(--text);
+            padding-bottom: 80px;
+        }
+
+        /* Premium Header */
+        header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            padding: 80px 20px 60px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 40px;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.3), transparent 40%),
+                radial-gradient(circle at bottom left, rgba(236, 72, 153, 0.3), transparent 40%);
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            margin-bottom: 1rem;
+            position: relative;
+            background: linear-gradient(to right, #ffffff, #e2e8f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: #94a3b8;
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Section Styling */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            color: var(--dark);
+            font-weight: 700;
+        }
+
+        .section-badge {
+            background: var(--dark);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 32px;
+            margin-bottom: 40px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 20px;
+        }
+
+        .test-item {
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .test-item:hover {
+            transform: translateY(-2px);
+        }
+
+        .test-label {
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-light);
+        }
+
+        /* Badge Components */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .badge-fail {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+
+        .badge-pass {
+            background: #dcfce7;
+            color: #22c55e;
+        }
+
+        .badge-warn {
+            background: #fef9c3;
+            color: #eab308;
+        }
+
+        /* Button Styling */
+        .btn {
+            font-family: 'Inter', sans-serif;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* Contrast Test Classes */
+        .contrast-fail-1 {
+            background: #ffffff;
+            color: #e5e5e5;
+        }
+
+        .contrast-fail-2 {
+            background: #94a3b8;
+            color: #64748b;
+        }
+
+        .contrast-pass-1 {
+            background: #0f172a;
+            color: #ffffff;
+        }
+
+        /* Specific Test Styles */
+        .gradient-fail {
+            background: linear-gradient(to right, #242424, #000000);
+            color: #fda4af;
+            /* Low contrast on pink */
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px;
+        }
+
+        .dummy-img {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            border-radius: 8px;
+            background-color: #e2e8f0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="container">
+            <h1>Audit Master Pro</h1>
+            <p class="subtitle">Complete test suite for "All-in-One Website Audit" extension. <br>Designed to trigger
+                every warning and validation rule.</p>
+        </div>
+    </header>
+
+    <div class="container">
+
+        <!-- CONTRAST & GRADIENTS SECTION -->
+        <section id="contrast">
+            <div class="section-header">
+                <h2 class="section-title">Color Contrast & Gradients</h2>
+                <span class="section-badge">Legacy & New</span>
+            </div>
+
+            <!-- GRADIENT TEXT TEST CASES -->
+            <div class="card">
+                <h3>Gradient Text Analysis <span class="badge badge-fail">New Feature</span></h3>
+                <p style="margin-bottom: 20px; color: var(--text-light);">The extension should now detect text with
+                    `background-clip: text`. It extracts colors from the text gradient and compares them to the
+                    background.</p>
+
+                <div class="grid">
+                    <!-- 1. Gradient Text FAIL: White-to-Grey text on White Background -->
+                    <div class="test-item">
+                        <h2
+                            style="font-size: 2rem; background: linear-gradient(to right, #999999, #ffffff); -webkit-background-clip: text; color: transparent;">
+                            Gradient Fail
+                        </h2>
+                        <p style="margin-top: 8px; font-size: 0.8rem;">Gradient Text (#999 to #fff) on White BG.
+                            <br><strong>Should FAIL</strong> (White on White).
+                        </p>
+                    </div>
+
+                    <!-- 2. Gradient Text PASS: High Contrast Gradient on Dark BG -->
+                    <div class="test-item" style="background: #1e293b;">
+                        <h2
+                            style="font-size: 2rem; background: linear-gradient(to right, #4ade80, #3b82f6); -webkit-background-clip: text; color: transparent;">
+                            Gradient Pass
+                        </h2>
+                        <p style="margin-top: 8px; font-size: 0.8rem; color: #cbd5e1;">Green-to-Blue Text on Dark BG.
+                            <br><strong>Should PASS</strong>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Traditional Contrast Violations</h3>
+                <div class="grid">
+                    <div class="test-item contrast-fail-1">
+                        <span class="test-label">Fail (Very Low)</span>
+                        <h4 style="font-weight: 600;">Invisible Text</h4>
+                        <p>Light gray (#e5e5e5) on white.</p>
+                    </div>
+                    <div class="test-item contrast-fail-2">
+                        <span class="test-label">Fail (Low)</span>
+                        <h4 style="font-weight: 600;">Subtle Text</h4>
+                        <p>Dark gray on medium gray.</p>
+                    </div>
+                    <div class="test-item contrast-pass-1">
+                        <span class="test-label">Pass</span>
+                        <h4 style="font-weight: 600;">High Contrast</h4>
+                        <p>White text on dark slate.</p>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 32px;">Gradient Backgrounds</h3>
+                <div class="grid">
+                    <div class="test-item gradient-fail">
+                        <span class="test-label">Gradient Fail</span>
+                        <h4 style="color: inherit;">Fading Text</h4>
+                        <p style="color: inherit;">This text blends into the gradient background at certain points.</p>
+                    </div>
+                    <div class="test-item"
+                        style="background: linear-gradient(135deg, #4f46e5 0%, #0f172a 100%); color: white;">
+                        <span class="test-label">Gradient Pass</span>
+                        <h4 style="color: inherit;">Clear Text</h4>
+                        <p style="color: inherit;">White text stands out against deep blue/black gradient.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- BUTTON AUDIT SECTION -->
+        <section id="buttons">
+            <div class="section-header">
+                <h2 class="section-title">Button Audit</h2>
+                <span class="section-badge">New Feature</span>
+            </div>
+
+            <div class="card">
+                <h3>Capitalization Consistency <span class="badge badge-fail">Expect Failure</span></h3>
+                <p style="margin-bottom: 20px; color: var(--text-light);">Buttons should validly be all UPPERCASE, all
+                    lowercase, or Title Case. Mixing them is a violation.</p>
+
+                <div class="grid">
+                    <div class="test-item">
+                        <button class="btn" style="background: var(--primary); color: white;">SUBMIT ACTION</button>
+                        <p style="margin-top: 8px; font-size: 0.8rem;">Style: ALL CAPS</p>
+                    </div>
+                    <div class="test-item">
+                        <button class="btn" style="background: var(--secondary); color: white;">Cancel action</button>
+                        <p style="margin-top: 8px; font-size: 0.8rem;">Style: Sentence case</p>
+                    </div>
+                    <div class="test-item">
+                        <button class="btn" style="background: var(--dark); color: white;">Read More</button>
+                        <p style="margin-top: 8px; font-size: 0.8rem;">Style: Title Case</p>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 32px;">Link Destinations <span class="badge badge-fail">Expect Failure</span>
+                </h3>
+                <p style="margin-bottom: 20px; color: var(--text-light);">Button text should match destination context
+                    to avoid user confusion.</p>
+
+                <div class="grid">
+                    <div class="test-item">
+                        <!-- Redirect mismatch logic would need JS simulation or anchor tags styled as buttons if the extension checks <a> tags too. Assuming generic button/link check. -->
+                        <a href="contact.html" class="btn"
+                            style="background: #22c55e; color: white; text-decoration: none;">Go to Home</a>
+                        <p style="margin-top: 8px; font-size: 0.8rem;">Says "Home", Links to "Contact"</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FONT AUDIT SECTION -->
+        <section id="fonts">
+            <div class="section-header">
+                <h2 class="section-title">Typography & Fonts</h2>
+                <span class="section-badge">New Feature</span>
+            </div>
+
+            <div class="card">
+                <h3>Heading Hierarchy <span class="badge badge-fail">Expect Failure</span></h3>
+                <!-- Adding a second H1 to trigger "One H1 per page" rule. First H1 is in header. -->
+                <h1>Second H1 (Invalid)</h1>
+                <p style="margin-bottom: 20px; color: var(--text-light);">This page deliberately contains multiple H1
+                    tags.</p>
+
+                <h3>Inconsistent Sizes</h3>
+                <div class="grid">
+                    <div class="test-item">
+                        <h2>Heading 2 (Size A)</h2>
+                        <p>Font size: 2rem (default)</p>
+                    </div>
+                    <div class="test-item">
+                        <h2 style="font-size: 1.5rem;">Heading 2 (Size B)</h2>
+                        <p>Font size: 1.5rem (Inconsistent)</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- IMAGE AUDIT SECTION -->
+        <section id="images">
+            <div class="section-header">
+                <h2 class="section-title">Images & Accessibility</h2>
+                <span class="section-badge">New Feature</span>
+            </div>
+
+            <div class="card">
+                <h3>Alt Text Validation</h3>
+                <div class="image-grid">
+                    <div class="test-item">
+                        <!-- Missing Alt -->
+                        <img src="data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22200%22%20height%3D%22150%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20200%20150%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3Cstyle%20type%3D%22text%2Fcss%22%3E%23holder_1%20text%20%7B%20fill%3A%23AAAAAA%3Bfont-weight%3Abold%3Bfont-family%3AArial%2C%20Helvetica%2C%20Open%20Sans%2C%20sans-serif%2C%20monospace%3Bfont-size%3A10pt%20%7D%20%3C%2Fstyle%3E%3C%2Fdefs%3E%3Cg%20id%3D%22holder_1%22%3E%3Crect%20width%3D%22200%22%20height%3D%22150%22%20fill%3D%23EEEEEE%3E%3C%2Frect%3E%3Cg%3E%3Ctext%20x%3D%2274%22%20y%3D%2280%22%3EMissing%20Alt%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E"
+                            class="dummy-img">
+                        <p style="margin-top: 8px; font-size: 0.8rem; color: #ef4444; font-weight: bold;">Error: Missing
+                            Alt</p>
+                    </div>
+
+                    <div class="test-item">
+                        <!-- Empty Alt -->
+                        <img src="data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22200%22%20height%3D%22150%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20200%20150%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3Cstyle%20type%3D%22text%2Fcss%22%3E%23holder_1%20text%20%7B%20fill%3A%23AAAAAA%3Bfont-weight%3Abold%3Bfont-family%3AArial%2C%20Helvetica%2C%20Open%20Sans%2C%20sans-serif%2C%20monospace%3Bfont-size%3A10pt%20%7D%20%3C%2Fstyle%3E%3C%2Fdefs%3E%3Cg%20id%3D%22holder_1%22%3E%3Crect%20width%3D%22200%22%20height%3D%22150%22%20fill%3D%23EEEEEE%3E%3C%2Frect%3E%3Cg%3E%3Ctext%20x%3D%2274%22%20y%3D%2280%22%3EEmpty%20Alt%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E"
+                            alt="" class="dummy-img">
+                        <p style="margin-top: 8px; font-size: 0.8rem; color: #eab308; font-weight: bold;">Warning: Empty
+                            Alt</p>
+                    </div>
+
+                    <div class="test-item">
+                        <!-- Good Alt -->
+                        <img src="data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22200%22%20height%3D%22150%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20200%20150%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3Cstyle%20type%3D%22text%2Fcss%22%3E%23holder_1%20text%20%7B%20fill%3A%23AAAAAA%3Bfont-weight%3Abold%3Bfont-family%3AArial%2C%20Helvetica%2C%20Open%20Sans%2C%20sans-serif%2C%20monospace%3Bfont-size%3A10pt%20%7D%20%3C%2Fstyle%3E%3C%2Fdefs%3E%3Cg%20id%3D%22holder_1%22%3E%3Crect%20width%3D%22200%22%20height%3D%22150%22%20fill%3D%23EEEEEE%3E%3C%2Frect%3E%3Cg%3E%3Ctext%20x%3D%2274%22%20y%3D%2280%22%3EGood%20Alt%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E"
+                            alt="Placeholder image for testing valid alt text" class="dummy-img">
+                        <p style="margin-top: 8px; font-size: 0.8rem; color: #22c55e; font-weight: bold;">Pass: Valid
+                            Alt</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTENT CHECKER SECTION -->
+        <section id="content">
+            <div class="section-header">
+                <h2 class="section-title">Content Quality</h2>
+                <span class="section-badge">New Feature</span>
+            </div>
+
+            <div class="card">
+                <h3>Placeholder Text Detection <span class="badge badge-warn">Expect Warning</span></h3>
+                <div class="test-item" style="background: #fff8f8; border-color: #fee2e2;">
+                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut
+                        labore et dolore magna aliqua.</p>
+                </div>
+                <p style="margin-top: 10px; color: var(--text-light);">The paragraph above contains "Lorem ipsum", which
+                    should trigger a content warning.</p>
+            </div>
+        </section>
+
+        <!-- SEO MET DATA SUMMARY -->
+        <section id="seo">
+            <div class="section-header">
+                <h2 class="section-title">SEO Audit</h2>
+                <span class="section-badge">Head Tag Check</span>
+            </div>
+
+            <div class="card">
+                <p><strong>Note:</strong> Check the Extension's SEO tab.</p>
+                <ul style="list-style-position: inside; margin-top: 10px;">
+                    <li>Title tag is >60 characters (Should Warn/Fail)</li>
+                    <li>Meta Description is <50 characters (Should Warn/Fail)</li>
+                </ul>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Footer -->
+    <footer style="text-align: center; margin-top: 60px; color: var(--text-light);">
+        <p>Built for Extension Testing • 2024</p>
+    </footer>
+
+</body>
+
+</html>

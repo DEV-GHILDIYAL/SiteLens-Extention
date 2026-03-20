@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Test Page 2 - DUDA-Style Layout</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        /* Hero section with background - common in DUDA */
+        .hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 100px 20px;
+            text-align: center;
+        }
+
+        /* Text directly on gradient - should have good contrast */
+        .hero-section h1 {
+            color: #ffffff;
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        /* BAD: Light text on light part of gradient */
+        .hero-section .subtitle {
+            color: #e0e0e0;
+            font-size: 20px;
+        }
+
+        /* Section with image background */
+        .image-section {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23dddddd" width="100" height="100"/></svg>');
+            background-size: cover;
+            padding: 80px 20px;
+        }
+
+        /* Text container on image - parent has no background */
+        .text-container {
+            /* NO background-color set - this is the key test case */
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* BAD: Gray text, background comes from .image-section */
+        .text-container h2 {
+            color: #aaaaaa;
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+
+        .text-container p {
+            color: #888888;
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        /* Overlay pattern - common in DUDA */
+        .overlay-section {
+            position: relative;
+            background-color: #333333;
+            padding: 80px 20px;
+        }
+
+        .overlay-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.3);
+            pointer-events: none;
+        }
+
+        .overlay-content {
+            position: relative;
+            z-index: 1;
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        /* BAD: Dark text on semi-transparent white overlay */
+        .overlay-content h2 {
+            color: #555555;
+            font-size: 32px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="hero-section">
+        <h1>Welcome to Our Site</h1>
+        <p class="subtitle">This subtitle might have contrast issues on the gradient</p>
+    </div>
+    <div>
+        <img src="https://images.unsplash.com/photo-1761839256791-6a93f89fb8b0?q=80&w=1471&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+            alt="">
+    </div>
+
+    <div
+        class="image-secti                                                                                                                                                                                                                                                                                                                                                                                                                         on">
+        <div class="text-container">
+            <h2>Text Over Background Image</h2>
+            <p>This is the key test case: text element has no background-color property,
+                but gets background from parent section. Most tools miss this!</p>
+        </div>
+    </div>
+
+    <div class="overlay-section">
+        <div class="overlay-content">
+            <h2>Overlay Text Test</h2>
+            <p style="color: #444444;">Text with semi-transparent overlay should be checked correctly.</p>
+        </div>
+    </div>
+</body>
+
+</html>
