@@ -1,0 +1,32 @@
+{
+    "extensionName": {
+        "message": "SiteLens"
+    },
+    "extensionDescription": {
+        "message": "Comprehensive WCAG compliance and design audit tool."
+    },
+    "missingAlt": {
+        "message": "Missing alt text (critical for accessibility)"
+    },
+    "emptyAlt": {
+        "message": "Alt attribute is empty (should describe image if not decorative)"
+    },
+    "redundantAlt": {
+        "message": "Alt text starts with redundant phrase"
+    },
+    "longAlt": {
+        "message": "Alt text too long"
+    },
+    "startingAudit": {
+        "message": "Starting performant audit..."
+    },
+    "seoMissingTitle": {
+        "message": "Missing meta title"
+    },
+    "seoMissingDescription": {
+        "message": "Missing meta description"
+    },
+    "seoHeadingHierarchy": {
+        "message": "Incorrect heading hierarchy"
+    }
+}

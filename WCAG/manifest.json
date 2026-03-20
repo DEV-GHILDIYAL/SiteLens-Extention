@@ -2,6 +2,7 @@
     "manifest_version": 3,
     "name": "SiteLens",
     "version": "0.2.15",
+    "default_locale": "en",
     "description": "SiteLens - Comprehensive WCAG compliance, contrast analyzer, and design audit tool. Developed by DEV GHILDIYAL.",
     "author": "DEV GHILDIYAL",
     "permissions": [
@@ -11,9 +12,6 @@
         "contextMenus",
         "downloads",
         "sidePanel"
-    ],
-    "host_permissions": [
-        "<all_urls>"
     ],
     "background": {
         "service_worker": "src/background/background.js",
@@ -25,27 +23,7 @@
                 "<all_urls>"
             ],
             "js": [
-                "src/utils/color-utils.js",
-                "src/utils/wcag-calculator.js",
-                "src/utils/canvas-processor.js",
-                "src/utils/background-sampler.js",
-                "src/utils/text-detector.js",
-                "src/utils/dom-traverser.js",
-                "src/utils/storage-manager.js",
-                "src/utils/report-generator.js",
-                "src/utils/contrast-analyzer.js",
-                "src/utils/font-analyzer.js",
-                "src/utils/button-analyzer.js",
-                "src/utils/image-analyzer.js",
-                "src/utils/color-analyzer.js",
-                "src/utils/seo-analyzer.js",
-                "src/utils/content-analyzer.js",
-                "src/utils/link-analyzer.js",
-                "src/content/overlay.js",
-                "src/content/content.js"
-            ],
-            "css": [
-                "src/content/overlay.css"
+                "src/content/content.bundle.js"
             ],
             "run_at": "document_idle"
         }
