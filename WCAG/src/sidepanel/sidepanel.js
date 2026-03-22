@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Initialize Global Managers
   window.selfAudit = new SelfAuditManager();
+  window.imageAudit = new ImageAuditManager();
 
   /**
    * ENSURE FRESH PAGE

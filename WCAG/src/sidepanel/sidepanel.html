@@ -146,6 +146,13 @@
                         <h3 class="feature-card-title">Alt Text Generator</h3>
                         <p class="feature-card-desc">Generate SEO-friendly alt text labels</p>
                     </div>
+
+                    <!-- Image Audit (New) -->
+                    <div class="feature-card" data-feature="imageAudit">
+                        <div class="feature-card-icon">📸</div>
+                        <h3 class="feature-card-title">Image Integrity</h3>
+                        <p class="feature-card-desc">Scan site for duplicate/repeat images</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -486,6 +493,43 @@
                         </div>
                     </div>
                     <p class="helper-text" style="text-align: center; margin-top: 12px; font-size: 12px; font-weight: 500; color: var(--text-dim);">Click the box to copy to clipboard</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: IMAGE AUDIT -->
+        <div class="tab-content" id="imageAuditTab">
+            <div class="image-audit-section">
+                <h2 class="page-title">📸 Image Integrity Audit</h2>
+                <p class="helper-text">Enter page URLs to scan for duplicate and repeated images across your site (including CSS backgrounds).</p>
+
+                <div class="input-group">
+                    <label>Enter URLs (one per line or comma separated)</label>
+                    <textarea id="imageAuditUrls" placeholder="https://example.com/home&#10;https://example.com/about&#10;https://example.com/services" 
+                        style="height: 120px; font-family: monospace; font-size: 11px;"></textarea>
+                    
+                    <div style="display: flex; gap: 8px; margin-top: 12px;">
+                        <button id="startImageAuditBtn" class="btn btn-primary" style="flex: 1;">
+                            <span class="btn-icon">▶️</span> Scan Site Images
+                        </button>
+                        <button id="stopImageAuditBtn" class="btn btn-secondary" style="display: none;">
+                            <span class="btn-icon">⏹️</span> Stop
+                        </button>
+                    </div>
+                </div>
+
+                <div id="imageAuditProgress" style="display: none; margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
+                        <span id="imageAuditStatusText" style="color: var(--text-muted);">Preparing scan...</span>
+                    </div>
+                    <div class="progress-bar" style="height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden;">
+                        <div id="imageAuditProgressBar" style="height: 100%; width: 0%; background: var(--primary); transition: width 0.3s ease;"></div>
+                    </div>
+                </div>
+
+                <div id="imageAuditResults" style="margin-top: 30px; display: none;">
+                    <h3 class="section-title">Audit Results</h3>
+                    <div id="imageAuditResultsList" style="margin-top: 15px;"></div>
                 </div>
             </div>
         </div>
@@ -907,6 +951,7 @@
     <script src="../utils/content-comparison.js"></script>
     <script src="../utils/ai-audit-service.js"></script>
     <script src="../utils/self-audit.js"></script>
+    <script src="../utils/image-audit-manager.js"></script>
     <script src="sidepanel.js"></script>
 </body>
 

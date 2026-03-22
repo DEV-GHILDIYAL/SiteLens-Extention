@@ -144,6 +144,10 @@
 				case 'highlightList':
 					handleHighlightList(request, sendResponse);
 					return true;
+				case 'extractAllImages':
+					const extractedImages = ImageAnalyzer.extractAllImages();
+					sendResponse({ success: true, images: extractedImages });
+					return true;
 				default:
 					sendResponse({ success: false, error: 'Unknown action: ' + request.action });
 					return false;
