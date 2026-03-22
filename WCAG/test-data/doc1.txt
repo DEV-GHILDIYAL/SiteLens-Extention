@@ -1,0 +1,7 @@
+Welcome to My Site
+This is a test page for SiteLens AI Self-Audit.
+Our Services
+Web Development
+AI Consulting
+Our mission is to help designers build accessible websites effortlessly.
+Contact us at test@example.com for more info.

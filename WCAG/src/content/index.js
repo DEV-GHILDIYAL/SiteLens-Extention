@@ -10,6 +10,11 @@
 import { CoreEngine } from './modules/core-engine.js';
 import { ImageAnalyzer } from './modules/analyzers/image-analyzer.js';
 import { SEOAnalyzer } from './modules/analyzers/seo-analyzer.js';
+import { ContrastAnalyzer } from './modules/analyzers/contrast-analyzer.js';
+import { ButtonAnalyzer } from './modules/analyzers/button-analyzer.js';
+import { FontAnalyzer } from './modules/analyzers/font-analyzer.js';
+import { ContentAnalyzer } from './modules/analyzers/content-analyzer.js';
+import { LinkAnalyzer } from './modules/analyzers/link-analyzer.js';
 
 class SiteLensController {
     constructor() {
@@ -19,9 +24,14 @@ class SiteLensController {
     }
 
     setupAnalyzers() {
-        // Register analyzers following the interface
+        // Register all analyzers following the interface
         this.engine.registerAnalyzer(ImageAnalyzer.name, ImageAnalyzer.analyze.bind(ImageAnalyzer));
         this.engine.registerAnalyzer(SEOAnalyzer.name, SEOAnalyzer.analyze.bind(SEOAnalyzer));
+        this.engine.registerAnalyzer(ContrastAnalyzer.name, ContrastAnalyzer.analyze.bind(ContrastAnalyzer));
+        this.engine.registerAnalyzer(ButtonAnalyzer.name, ButtonAnalyzer.analyze.bind(ButtonAnalyzer));
+        this.engine.registerAnalyzer(FontAnalyzer.name, FontAnalyzer.analyze.bind(FontAnalyzer));
+        this.engine.registerAnalyzer(ContentAnalyzer.name, ContentAnalyzer.analyze.bind(ContentAnalyzer));
+        this.engine.registerAnalyzer(LinkAnalyzer.name, LinkAnalyzer.analyze.bind(LinkAnalyzer));
     }
 
     setupMessageListeners() {
@@ -46,6 +56,40 @@ class SiteLensController {
                 } catch (error) {
                     sendResponse({ success: false, error: error.message });
                 }
+            },
+            'analyzeAll': async (request, sendResponse) => {
+                try {
+                    console.log('🏁 Starting analyzeAll (Self Audit Mode)...');
+                    const results = await this.engine.runAudit();
+                    
+                    // Format for SelfAuditManager ensuring correct key mapping
+                    const data = {
+                        contrast: { total: results.results.contrast?.items?.length || 0, violations: results.results.contrast?.items || [] },
+                        images: { issues: results.results.images?.items || [] },
+                        buttons: { stats: { totalIssues: results.results.buttons?.items?.length || 0 }, items: results.results.buttons?.items || [] },
+                        seo: { score: results.results.seo?.items?.[0]?.score || 100 },
+                        fonts: { issues: results.results.fonts?.items || [] },
+                        content: { loremIpsum: { count: results.results.content?.items?.length || 0, items: results.results.content?.items || [] } },
+                        links: { issues: results.results.links?.items || [] }
+                    };
+                    
+                    console.log('📊 analyzeAll results ready:', data);
+                    sendResponse({ success: true, data });
+                } catch (error) {
+                    console.error('❌ analyzeAll failed:', error);
+                    sendResponse({ success: false, error: error.message });
+                }
+            },
+            'crawlNav': (request, sendResponse) => {
+                const links = Array.from(document.querySelectorAll('a[href]'))
+                    .map(a => a.getAttribute('href'))
+                    .filter(href => href && !href.startsWith('#') && !href.startsWith('javascript:'));
+                sendResponse({ success: true, links });
+            },
+            'getPageText': (request, sendResponse) => {
+                // Focus on main content text
+                const text = document.body.innerText || '';
+                sendResponse({ success: true, text });
             },
             'clearResults': (request, sendResponse) => {
                 this.engine.reset();

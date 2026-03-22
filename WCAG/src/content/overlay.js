@@ -1,4 +1,3 @@
-// Visual overlay for highlighting contrast violations
 const ContrastOverlay = {
 	overlayContainer: null,
 	highlightElements: [],
@@ -8,26 +7,55 @@ const ContrastOverlay = {
 	* Initialize the overlay system
 	*/
 	init() {
-		if (this.overlayContainer) {
-			return; // Already initialized
+		if (this.overlayContainer && document.body.contains(this.overlayContainer)) return;
+		
+		// Inject CSS if missing
+		if (!document.getElementById('wcag-overlay-styles')) {
+			const link = document.createElement('link');
+			link.id = 'wcag-overlay-styles';
+			link.rel = 'stylesheet';
+			link.href = chrome.runtime.getURL('src/content/overlay.css');
+			document.head.appendChild(link);
 		}
-		// Create overlay container
+
 		this.overlayContainer = document.createElement('div');
 		this.overlayContainer.id = 'contrast-checker-overlay';
 		this.overlayContainer.className = 'contrast-overlay-container';
+		
+		// Ensure it covers full document height if body is shorter
+		const bodyHeight = Math.max(
+			document.body.scrollHeight, 
+			document.body.offsetHeight, 
+			document.documentElement.clientHeight, 
+			document.documentElement.scrollHeight, 
+			document.documentElement.offsetHeight
+		);
+		this.overlayContainer.style.height = bodyHeight + 'px';
+		
 		document.body.appendChild(this.overlayContainer);
 	},
 
 	/**
-	* Show violations on page
+	* Show violations on page with grouping
 	*/
 	showViolations(violations) {
 		this.init();
 		this.clearHighlights();
-		console.log(`Showing ${violations.length} violations`);
+		
+		// Group violations by element
+		const groupedByElement = new Map();
+		violations.forEach(v => {
+			if (!v.element) return;
+			if (!groupedByElement.has(v.element)) {
+				groupedByElement.set(v.element, []);
+			}
+			groupedByElement.get(v.element).push(v);
+		});
 
-		for (const violation of violations) {
-			this.highlightElement(violation);
+		console.log(`Showing violations on ${groupedByElement.size} unique elements`);
+
+		for (const [element, elementViolations] of groupedByElement) {
+			this.highlightElement(element, elementViolations);
 		}
 
 		this.isVisible = true;
@@ -35,13 +63,10 @@ const ContrastOverlay = {
 	},
 
 	/**
-	* Highlight a single violation
+	* Highlight a single element with its violations
 	*/
-	highlightElement(violation) {
-		const element = violation.element;
-		if (!element || !document.body.contains(element)) {
-			return;
-		}
+	highlightElement(element, violations) {
+		if (!element || !document.body.contains(element)) return;
 
 		const rect = element.getBoundingClientRect();
 		const scrollX = window.scrollX;
@@ -49,8 +74,7 @@ const ContrastOverlay = {
 
 		// Create highlight box
 		const highlight = document.createElement('div');
-		highlight.className = 'contrast-highlight';
-		highlight.style.position = 'absolute';
+		highlight.className = 'contrast-highlight new';
 		highlight.style.left = (rect.left + scrollX) + 'px';
 		highlight.style.top = (rect.top + scrollY) + 'px';
 		highlight.style.width = rect.width + 'px';
@@ -58,85 +82,62 @@ const ContrastOverlay = {
 
 		// Create tooltip
 		const tooltip = document.createElement('div');
-		tooltip.className = 'contrast-tooltip';
-		tooltip.innerHTML = this.createTooltipContent(violation);
+		const isNearTop = rect.top < 350; // Enough space for ~300px tooltip + buffer
+		tooltip.className = `contrast-tooltip ${isNearTop ? 'position-bottom' : 'position-top'}`;
+		tooltip.innerHTML = this.createTooltipContent(violations);
 		highlight.appendChild(tooltip);
 
-		// Click to show/hide tooltip
+		// Premium interactions
+		highlight.addEventListener('mouseenter', () => tooltip.classList.add('visible'));
+		highlight.addEventListener('mouseleave', () => tooltip.classList.remove('visible'));
+		
+		// Click to pin/unpin maybe? For now just keep it simple but pretty.
 		highlight.addEventListener('click', (e) => {
 			e.stopPropagation();
-			tooltip.classList.toggle('visible');
+			tooltip.classList.toggle('pinned');
 		});
 
 		this.overlayContainer.appendChild(highlight);
 		this.highlightElements.push({
 			highlight: highlight,
 			element: element,
-			violation: violation
+			violations: violations
 		});
 	},
 
 	/**
-	* Create tooltip content
+	* Create tooltip content for one or more violations
 	*/
-	createTooltipContent(violation) {
-		const ratio = WCAGCalculator.formatRatio(violation.contrastRatio);
-		const required = violation.compliance.requiredAA.toFixed(1);
-
-		let gradientNote = '';
-		if (violation.isGradient && violation.gradientDetails) {
-			const details = violation.gradientDetails;
-			gradientNote = `
-	<div class="tooltip-row" style="border-top: 1px solid #ddd; padding-top: 8px; margin-top: 8px;">
-		<strong style="width: 100%;">🎨 Gradient Info</strong>
-	</div>
-	<div class="tooltip-row">
-		<span>Total Combinations:</span>
-		<span class="value">${details.totalColors || '?'}</span>
-	</div>
-	<div class="tooltip-row">
-		<span>AA Passed:</span>
-		<span class="value" style="color: #4CAF50;">${details.passCountAA !== undefined ? details.passCountAA : '?'} / ${details.totalColors}</span>
-	</div>
-	<div class="tooltip-row">
-		<span>AAA Passed:</span>
-		<span class="value" style="color: #2E7D32;">${details.passCountAAA !== undefined ? details.passCountAAA : '?'} / ${details.totalColors}</span>
-	</div>
-	<div class="tooltip-row">
-		<span>Failing Combinations:</span>
-		<span class="value" style="color: #F44336;">${details.failCount !== undefined ? details.failCount : '?'}</span>
-	</div>
-	<div class="tooltip-row" style="font-size: 11px; color: #666;">
-		<em>${details.note || 'Gradient analysis details unavailable'}</em>
-	</div>
+	createTooltipContent(violations) {
+		const isMultiple = violations.length > 1;
+		const mainViolation = violations[0];
+		
+		let violationsHtml = violations.map((v, idx) => {
+			const ratio = WCAGCalculator.formatRatio(v.contrastRatio);
+			const required = v.compliance.requiredAA.toFixed(1);
+			return `
+				<div class="violation-item ${idx > 0 ? 'bordered' : ''}">
+					<div class="tooltip-row">
+						<strong>${v.isGradient ? '🎨 Gradient' : 'Issue ' + (idx + 1)}</strong>
+						<span class="value fail">${ratio}</span>
+					</div>
+					<div class="tooltip-meta">Req: ${required}:1 | ${v.textColor} on ${v.backgroundColor}</div>
+					<div class="tooltip-meta">Size: ${v.fontSize}px | Weight: ${v.fontWeight}</div>
+				</div>
 			`;
-		}
+		}).join('');
 
 		return `
-<div class="tooltip-header">
-	<strong>${violation.isGradient ? '⚠️ Gradient Contrast Issue' : 'Contrast Violation'}</strong>
-</div>
-<div class="tooltip-body">
-	<div class="tooltip-row">
-		<span>Contrast:</span>
-		<span class="value fail">${ratio}</span>
-	</div>
-	<div class="tooltip-row">
-		<span>Required:</span>
-		<span class="value">${required}:1</span>
-	</div>
-	<div class="tooltip-row">
-		<span>Text:</span>
-		<span class="value">${violation.textColor}</span>
-	</div>
-	<div class="tooltip-row">
-		<span>Background:</span>
-		<span class="value">${violation.backgroundColor}</span>
-	</div>
-	${violation.compliance.isLargeText ? '<div class="large-text-badge">Large Text</div>' : ''}
-	${gradientNote}
-</div>
-<div class="tooltip-text">${violation.text}</div>
+			<div class="tooltip-header">
+				<strong>${isMultiple ? '⚠️ Multiple Issues' : (mainViolation.isGradient ? '⚠️ Gradient Issue' : 'Contrast Violation')}</strong>
+				<span class="issue-count">${violations.length}</span>
+			</div>
+			<div class="tooltip-body">
+				${violationsHtml}
+			</div>
+			<div class="tooltip-footer">
+				${mainViolation.text.substring(0, 50)}${mainViolation.text.length > 50 ? '...' : ''}
+			</div>
 		`;
 	},
 
@@ -152,9 +153,6 @@ const ContrastOverlay = {
 		this.highlightElements = [];
 	},
 
-	/**
-	* Hide overlay
-	*/
 	hide() {
 		if (this.overlayContainer) {
 			this.overlayContainer.style.display = 'none';
@@ -162,9 +160,6 @@ const ContrastOverlay = {
 		}
 	},
 
-	/**
-	* Show overlay
-	*/
 	show() {
 		if (this.overlayContainer) {
 			this.overlayContainer.style.display = 'block';
@@ -172,20 +167,10 @@ const ContrastOverlay = {
 		}
 	},
 
-	/**
-	* Toggle overlay visibility
-	*/
 	toggle() {
-		if (this.isVisible) {
-			this.hide();
-		} else {
-			this.show();
-		}
+		this.isVisible ? this.hide() : this.show();
 	},
 
-	/**
-	* Remove overlay completely
-	*/
 	destroy() {
 		this.clearHighlights();
 		if (this.overlayContainer && this.overlayContainer.parentNode) {
@@ -195,54 +180,36 @@ const ContrastOverlay = {
 		this.isVisible = false;
 	},
 
-	/**
-	* Update highlights on scroll/resize
-	*/
 	updatePositions() {
 		this.highlightElements.forEach(item => {
 			if (!document.body.contains(item.element)) {
-				// Element removed from DOM
-				if (item.highlight.parentNode) {
-					item.highlight.parentNode.removeChild(item.highlight);
-				}
+				if (item.highlight.parentNode) item.highlight.parentNode.removeChild(item.highlight);
 				return;
 			}
-
 			const rect = item.element.getBoundingClientRect();
-			const scrollX = window.scrollX;
-			const scrollY = window.scrollY;
-
-			item.highlight.style.left = (rect.left + scrollX) + 'px';
-			item.highlight.style.top = (rect.top + scrollY) + 'px';
+			item.highlight.style.left = (rect.left + window.scrollX) + 'px';
+			item.highlight.style.top = (rect.top + window.scrollY) + 'px';
 			item.highlight.style.width = rect.width + 'px';
 			item.highlight.style.height = rect.height + 'px';
 		});
 	}
 };
 
-// Update positions on scroll and resize
-// FIXED: Declare updateTimeout variable
 let updateTimeout;
-
 window.addEventListener('scroll', () => {
 	clearTimeout(updateTimeout);
 	updateTimeout = setTimeout(() => {
-		if (ContrastOverlay.isVisible) {
-			ContrastOverlay.updatePositions();
-		}
+		if (ContrastOverlay.isVisible) ContrastOverlay.updatePositions();
 	}, 100);
 }, { passive: true });
 
 window.addEventListener('resize', () => {
 	clearTimeout(updateTimeout);
 	updateTimeout = setTimeout(() => {
-		if (ContrastOverlay.isVisible) {
-			ContrastOverlay.updatePositions();
-		}
+		if (ContrastOverlay.isVisible) ContrastOverlay.updatePositions();
 	}, 100);
 });
 
-// Make available globally for content scripts
 if (typeof window !== 'undefined') {
 	window.ContrastOverlay = ContrastOverlay;
 }

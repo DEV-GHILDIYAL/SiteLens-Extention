@@ -13,6 +13,9 @@
         "downloads",
         "sidePanel"
     ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
     "background": {
         "service_worker": "src/background/background.js",
         "type": "module"
@@ -22,8 +25,26 @@
             "matches": [
                 "<all_urls>"
             ],
+            "css": [
+                "src/content/overlay.css"
+            ],
             "js": [
-                "src/content/content.bundle.js"
+                "src/utils/color-utils.js",
+                "src/utils/wcag-calculator.js",
+                "src/utils/dom-traverser.js",
+                "src/utils/canvas-processor.js",
+                "src/utils/text-detector.js",
+                "src/utils/background-sampler.js",
+                "src/utils/contrast-analyzer.js",
+                "src/utils/font-analyzer.js",
+                "src/utils/button-analyzer.js",
+                "src/utils/image-analyzer.js",
+                "src/utils/seo-analyzer.js",
+                "src/utils/color-analyzer.js",
+                "src/utils/content-analyzer.js",
+                "src/utils/link-analyzer.js",
+                "src/content/overlay.js",
+                "src/content/content.js"
             ],
             "run_at": "document_idle"
         }

@@ -1,54 +1,59 @@
-// Ultimate Contrast Checker - FULL FEATURED VERSION
+// SiteLens Premium Sidepanel Controller
 document.addEventListener('DOMContentLoaded', function () {
+  console.log('🚀 SiteLens Premium loaded');
 
-  // START: Fresh Screen / Reset State Logic
-  // (Moved to global scope to fix navigation bug)
-  // END: Reset State Logic
+  // Initialize Global Managers
+  window.selfAudit = new SelfAuditManager();
 
-  console.log('🚀 Popup loaded');
+  /**
+   * ENSURE FRESH PAGE
+   * Reloads the active tab and waits for it to complete.
+   * This ensures a fresh connection and that content scripts are ready.
+   */
+  async function ensureFreshPage() {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab || !tab.id) return;
 
-  // Listen for async messages from content script
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'contentAnalysisComplete') {
-      console.log('📨 Sidepanel received contentAnalysisComplete:', request.data);
-      if (request.data.loremIpsum) {
-        displayLoremOnly(request.data.loremIpsum);
-
-        // Also reset button state if needed
-        const btn = document.getElementById('runLoremAuditBtn');
-        if (btn) {
-          btn.innerHTML = '<span class="btn-icon">▶️</span> Scan for Lorem Ipsum';
-          btn.disabled = false;
-        }
-        const resultsArea = document.getElementById('loremResultsOnly');
-        if (resultsArea) resultsArea.style.display = 'block';
-      }
-      // Can add handlers for layout/duplicates here too if needed
+    // Skip system pages
+    if (tab.url.startsWith('chrome://') || tab.url.startsWith('edge://') || tab.url.startsWith('about:') || tab.url.startsWith('chrome-extension://')) {
+      return;
     }
-  });
 
-  // Listen for storage changes as fallback (Robustness Fix)
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes.latestAnalysis) {
-      const data = changes.latestAnalysis.newValue;
-      if (data && data.timestamp && (Date.now() - data.timestamp < 5000)) { // Only react to fresh updates (< 5s)
-        console.log('💾 Storage update received:', data);
+    console.log('🔄 Auto-refreshing page for fresh connection...');
 
-        if (data.loremIpsum) {
-          displayLoremOnly(data.loremIpsum);
+    return new Promise((resolve) => {
+      let resolved = false;
 
-          // Also reset button state
-          const btn = document.getElementById('runLoremAuditBtn');
-          if (btn) {
-            btn.innerHTML = '<span class="btn-icon">▶️</span> Scan for Lorem Ipsum';
-            btn.disabled = false;
-          }
-          const resultsArea = document.getElementById('loremResultsOnly');
-          if (resultsArea) resultsArea.style.display = 'block';
+      // Timeout safety (3 seconds)
+      const timeout = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          chrome.tabs.onUpdated.removeListener(listener);
+          resolve();
+        }
+      }, 3000);
+
+      function listener(tabId, info) {
+        if (tabId === tab.id && info.status === 'complete') {
+          resolved = true;
+          clearTimeout(timeout);
+          chrome.tabs.onUpdated.removeListener(listener);
+          // Extra buffer for scripts to initialize
+          setTimeout(resolve, 800);
         }
       }
-    }
-  });
+
+      chrome.tabs.onUpdated.addListener(listener);
+      chrome.tabs.reload(tab.id);
+    });
+  }
+
+  // Navigation handled in initializeNavigation()
+
+
+  // Handle Back Navigation
+  // Back button handled in initializeNavigation()
+
 
   // ========== TAB SWITCHING ==========
   const tabBtns = document.querySelectorAll('.tab-btn');
@@ -230,45 +235,97 @@ document.addEventListener('DOMContentLoaded', function () {
     // Side panel stays open!
   }
 
-  // Content Checker Logic
+  // Listener for Results from Content Script (Post-Reload)
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'contentCheckResults') {
+      console.log('📬 Received contentCheckResults:', message.results);
+      displayContentCheckResults(message.results);
+    }
+  });
+
   async function handleContentCheck() {
     console.log('🔍 handleContentCheck triggered');
     const text = contentInput.value.trim();
     if (!text) {
-      console.warn('⚠️ No text content to check');
       alert('Please enter text or upload a file');
       return;
     }
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    chrome.tabs.sendMessage(tab.id, { action: 'getPageText' }, (response) => {
-      if (chrome.runtime.lastError || !response || !response.success) {
-        alert('Could not get page text'); return;
-      }
-      // Parse Input into Lines (Strict Matching)
-      const sourceLines = text.split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0);
+    
+    // Parse Input into Lines
+    const sourceLines = text.split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
 
-      const totalLines = sourceLines.length;
-
-      // We will rely on content script to return match stats (async) or just show "Analysis Sent"
-      // For now, let's reset the results to a "Processing" state or rely on the visual feedback.
-      // BUT, to keep the UI useful, we can do a quick comprehensive check here ONLY for stats.
-      // However, exact match stats on just text content (without DOM context) are inaccurate.
-      // Let's simplified: Pass lines to content script.
-
+    // Save to storage and Reload
+    chrome.storage.local.set({ 
+      pendingContentCheck: true,
+      sourceLines: sourceLines,
+      tabId: tab.id 
+    }, () => {
+      console.log('💾 Pending check saved. Reloading tab...');
+      
+      // Update UI to "Analyzing" state
       document.getElementById('contentResults').style.display = 'block';
       document.getElementById('contentMatchPercent').textContent = '...';
-      document.getElementById('contentMissingCount').textContent = totalLines + ' Lines Checked';
-      document.getElementById('contentResultDetails').innerHTML = '<div style="color:var(--text-muted)">Check page for Highlights...</div>';
+      document.getElementById('contentMissingCount').textContent = '...';
+      const detailsEl = document.getElementById('contentResultDetails');
+      if (detailsEl) {
+        detailsEl.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px; background: rgba(30, 41, 59, 0.4); border-radius: 12px;">
+            <div style="font-size: 32px; animation: pulse 1.5s infinite;">👀</div>
+            <div style="color: var(--text-dim); font-size: 13px; font-weight: 500;">Reloading & Reaching Footer...</div>
+          </div>
+        `;
+      }
 
-      // Trigger Visual Diff on Page with Lines
-      chrome.tabs.sendMessage(tab.id, {
-        action: 'highlightContentDiff',
-        sourceLines: sourceLines
-      });
+      chrome.tabs.reload(tab.id);
     });
+  }
+
+  function displayContentCheckResults(results) {
+    if (!results || !results.success) return;
+
+    // Calculate Percentage
+    const percent = results.totalLines > 0 
+      ? Math.round((results.matchCount / results.totalLines) * 100) 
+      : 0;
+    
+    // Update UI
+    const matchPercentEl = document.getElementById('contentMatchPercent');
+    const missingCountEl = document.getElementById('contentMissingCount');
+    const detailsEl = document.getElementById('contentResultDetails');
+
+    if (matchPercentEl) matchPercentEl.textContent = percent + '%';
+    if (missingCountEl) missingCountEl.textContent = results.missingLines.length;
+
+    if (detailsEl) {
+      if (results.missingLines.length === 0) {
+        detailsEl.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05)); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 12px; text-align: center;">
+            <div style="font-size: 32px;">✨</div>
+            <div style="color: #10b981; font-weight: 700; font-size: 14px; font-family: 'Outfit', sans-serif;">ALL CONTENT FOUND!</div>
+            <div style="color: var(--text-muted); font-size: 11px;">Every segment was identified on the page.</div>
+          </div>
+        `;
+      } else {
+        detailsEl.innerHTML = `
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            ${results.missingLines.map((line, idx) => `
+              <div style="display: flex; gap: 12px; padding: 12px; background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 10px; transition: all 0.2s ease;">
+                <div style="display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border-radius: 6px; font-weight: 800; font-size: 10px; flex-shrink: 0;">
+                  ${idx + 1}
+                </div>
+                <div style="font-size: 12px; line-height: 1.5; color: var(--text-main); font-weight: 400;">
+                  ${line}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+    }
   }
 
   function downloadImage(dataUrl, filename) {
@@ -294,8 +351,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     try {
       isAnalyzing = true;
+      if (toggleBtn) {
+        toggleBtn.disabled = true;
+        toggleBtn.innerHTML = '<span class="btn-icon">⏳</span>Analyzing...';
+      }
+      
       console.log('🔍 Starting analysis...');
-
+      setStatus('analyzing', 'Refreshing page...');
+      await ensureFreshPage();
       setStatus('analyzing', 'Analyzing page...');
       analyzeBtn.disabled = true;
       analyzeBtn.textContent = '⏳ Analyzing...';
@@ -323,6 +386,7 @@ document.addEventListener('DOMContentLoaded', function () {
             errorMsg = 'Connection failed. Please refresh the page and try again.';
           }
           setStatus('error', errorMsg);
+          if (toggleBtn) toggleBtn.disabled = true;
           resetAnalyzeButton();
           return;
         }
@@ -334,6 +398,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
           console.error('❌ Analysis failed:', response?.error);
           setStatus('error', response?.error || 'Analysis failed');
+          if (toggleBtn) toggleBtn.disabled = true;
         }
 
         resetAnalyzeButton();
@@ -353,41 +418,63 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function displayResults(response) {
     const { violations, summary } = response;
+    const totalCount = violations ? violations.length : 0;
 
     console.log('📊 Displaying results:', summary);
 
     resultsSection.style.display = 'block';
     secondaryActions.style.display = 'block';
 
-    document.getElementById('totalViolations').textContent = violations ? violations.length : 0;
+    if (toggleBtn) {
+      toggleBtn.disabled = false;
+      toggleBtn.innerHTML = '<span class="btn-icon">🙈</span>Hide Highlights';
+    }
 
+    // Update Total and Status
+    document.getElementById('totalViolations').textContent = totalCount;
+    const statusSummary = document.getElementById('statusSummary');
+    const scoreCard = document.querySelector('.score-card');
+    const perfectState = document.getElementById('perfectState');
+
+    if (totalCount === 0) {
+      statusSummary.textContent = 'Excellent!';
+      statusSummary.style.color = 'var(--success)';
+      if (scoreCard) scoreCard.style.borderLeft = '4px solid var(--success)';
+      if (perfectState) perfectState.style.display = 'block';
+    } else {
+      statusSummary.textContent = totalCount < 5 ? 'Good Progress' : 'Needs Attention';
+      statusSummary.style.color = totalCount < 5 ? 'var(--warning)' : 'var(--danger)';
+      if (scoreCard) scoreCard.style.borderLeft = `4px solid ${totalCount < 5 ? 'var(--warning)' : 'var(--danger)'}`;
+      if (perfectState) perfectState.style.display = 'none';
+    }
+
+    // Update Counts
     const criticalCount = summary.byCategory ?
       Object.values(summary.byCategory).reduce((sum, val) => sum + val, 0) : 0;
     document.getElementById('criticalCount').textContent =
-      Math.min(criticalCount, violations ? violations.length : 0);
+      Math.min(criticalCount, totalCount);
 
-    const categories = summary.byCategory || {
-      text: 0,
-      button: 0,
-      gradient: 0
-    };
-
-    console.log('📂 Categories:', categories);
-
+    const categories = summary.byCategory || {};
     document.getElementById('textCount').textContent = categories.text || 0;
     document.getElementById('buttonCount').textContent = categories.button || 0;
     document.getElementById('gradientCount').textContent = categories.gradient || 0;
+    document.getElementById('imageCount').textContent = categories.image || 0;
 
     if (summary.worstContrast) {
       const worstCase = document.getElementById('worstCase');
-      worstCase.style.display = 'block';
+      if (worstCase) worstCase.style.display = 'flex'; // Changed to flex for minimal design
 
-      document.getElementById('worstRatioDisplay').textContent =
-        summary.worstContrast.contrastRatio.toFixed(2) + ':1';
-      document.getElementById('worstTextColor').style.backgroundColor =
-        summary.worstContrast.textColor;
-      document.getElementById('worstBgColor').style.backgroundColor =
-        summary.worstContrast.backgroundColor;
+      const ratioDisplay = document.getElementById('worstRatioDisplay');
+      if (ratioDisplay) ratioDisplay.textContent = summary.worstContrast.contrastRatio.toFixed(2) + ':1';
+      
+      const textColorDot = document.getElementById('worstTextColor');
+      if (textColorDot) textColorDot.style.backgroundColor = summary.worstContrast.textColor;
+      
+      const bgColorDot = document.getElementById('worstBgColor');
+      if (bgColorDot) bgColorDot.style.backgroundColor = summary.worstContrast.backgroundColor;
+    } else {
+      const worstCase = document.getElementById('worstCase');
+      if (worstCase) worstCase.style.display = 'none';
     }
   }
 
@@ -403,6 +490,14 @@ document.addEventListener('DOMContentLoaded', function () {
           const icon = response.visible ? '🙈' : '👁️';
           const text = response.visible ? 'Hide' : 'Show';
           toggleBtn.innerHTML = `<span class="btn-icon">${icon}</span>${text} Highlights`;
+          
+          if (response.visible) {
+            toggleBtn.classList.remove('btn-secondary');
+            toggleBtn.classList.add('btn-primary');
+          } else {
+            toggleBtn.classList.add('btn-secondary');
+            toggleBtn.classList.remove('btn-primary');
+          }
         }
       });
     } catch (error) {
@@ -530,7 +625,6 @@ document.addEventListener('DOMContentLoaded', function () {
     statusBadge.className = `status-badge ${type}`;
     statusText.textContent = message;
   }
-});
 
 // ========== TAB 2: MANUAL CHECKER ==========
 function initializeManualChecker() {
@@ -586,17 +680,44 @@ function initializeManualChecker() {
     const ratio = calculateContrast(textRgb, bgRgb);
 
     manualResults.style.display = 'block';
-    document.getElementById('manualRatio').textContent = ratio.toFixed(2) + ':1';
+    
+    // New Compact Result UI
+    const ratioHtml = `
+      <div class="compact-ratio-strip">
+        <div class="strip-main">
+          <span class="strip-ratio">${ratio.toFixed(2)}:1</span>
+          <span class="strip-status ${ratio >= 4.5 ? 'pass' : 'fail'}">${ratio >= 4.5 ? 'PASS' : 'FAIL'}</span>
+        </div>
+        <div class="strip-compliance">
+          <span class="mini-badge ${ratio >= 4.5 ? 'pass' : 'fail'}">AA</span>
+          <span class="mini-badge ${ratio >= 7 ? 'pass' : 'fail'}">AAA</span>
+          <span class="mini-badge ${ratio >= 3 ? 'pass' : 'fail'}">LG</span>
+        </div>
+      </div>
+    `;
+    
+    document.getElementById('manualRatio').innerHTML = ratioHtml;
 
-    updateCompliance('normalAA', ratio >= 4.5);
-    updateCompliance('normalAAA', ratio >= 7);
-    updateCompliance('largeAA', ratio >= 3);
-    updateCompliance('largeAAA', ratio >= 4.5);
+    // Small Sample View
+    const sampleNormal = document.getElementById('sampleNormal');
+    const sampleLarge = document.getElementById('sampleLarge');
+    
+    if (sampleNormal) {
+      sampleNormal.style.color = text;
+      sampleNormal.style.backgroundColor = bg;
+      sampleNormal.style.padding = '8px';
+      sampleNormal.style.borderRadius = '6px';
+    }
+    if (sampleLarge) {
+      sampleLarge.style.color = text;
+      sampleLarge.style.backgroundColor = bg;
+      sampleLarge.style.padding = '8px';
+      sampleLarge.style.borderRadius = '6px';
+    }
 
-    document.getElementById('sampleNormal').style.color = text;
-    document.getElementById('sampleNormal').style.backgroundColor = bg;
-    document.getElementById('sampleLarge').style.color = text;
-    document.getElementById('sampleLarge').style.backgroundColor = bg;
+    // Hide the old large compliance grid if it exists
+    const oldGrid = document.querySelector('.compliance-grid');
+    if (oldGrid) oldGrid.style.display = 'none';
   }
 
   function updateCompliance(id, passes) {
@@ -644,10 +765,14 @@ function initializeThemeGenerator() {
 
   // Setup brand color management
   const themeInputs = document.querySelector('.theme-inputs');
+  if (!themeInputs) return;
 
-  // Remove color count selector
-  const colorCountGroup = document.querySelector('.input-group:has(#colorCount)');
-  if (colorCountGroup) colorCountGroup.remove();
+  // Remove color count selector safely
+  const colorCount = document.getElementById('colorCount');
+  if (colorCount) {
+    const group = colorCount.closest('.input-group');
+    if (group) group.remove();
+  }
 
   const addBrandBtn = document.createElement('button');
   addBrandBtn.className = 'btn btn-secondary';
@@ -736,25 +861,27 @@ function initializeThemeGenerator() {
     // Generate complete palette
     const palette = createAdvancedPalette(brandColors);
 
-    // Display palette as grid
+    // Display palette as grid (Compact version)
     paletteDisplay.innerHTML = '';
+    paletteDisplay.style.display = 'flex';
+    paletteDisplay.style.flexWrap = 'wrap';
+    paletteDisplay.style.gap = '6px';
+    paletteDisplay.style.margin = '10px 0';
+
     palette.forEach(color => {
       const item = document.createElement('div');
-      item.className = 'palette-item';
-
-      const rgb = hexToRgb(color.hex);
-      const contrastWithWhite = calculateContrast(rgb, { r: 255, g: 255, b: 255 });
-      const textColor = contrastWithWhite >= 4.5 ? '#FFFFFF' : '#000000';
-
+      item.className = 'mini-color-swatch';
       item.style.backgroundColor = color.hex;
-      item.style.color = textColor;
+      item.title = `${color.name}: ${color.hex}`;
 
-      item.innerHTML = `
-        <div class="palette-swatch-info">
-            <span class="palette-name">${color.name}</span>
-            <span class="palette-hex">${color.hex}</span>
-        </div>
-      `;
+      item.onclick = async () => {
+        await navigator.clipboard.writeText(color.hex);
+        const hex = item.querySelector('.color-hex');
+        const original = hex.textContent;
+        hex.textContent = 'COPIED';
+        setTimeout(() => hex.textContent = original, 1000);
+      };
+
       paletteDisplay.appendChild(item);
     });
 
@@ -775,37 +902,10 @@ function initializeThemeGenerator() {
     const renderSpecs = (btnData, type) => {
       const isPass = btnData.ratio >= 4.5;
       return `
-            <div class="spec-row">
-                <span class="spec-label">Background</span>
-                <span class="spec-value">
-                    <span class="color-dot" style="background: ${btnData.bg}"></span>${btnData.bg}
-                </span>
-            </div>
-            <div class="spec-row">
-                <span class="spec-label">Text</span>
-                <span class="spec-value">
-                    <span class="color-dot" style="background: ${btnData.text}"></span>${btnData.text}
-                </span>
-            </div>
-            ${type === 'secondary' ? `
-            <div class="spec-row">
-                <span class="spec-label">Border</span>
-                <span class="spec-value">
-                    <span class="color-dot" style="background: ${btnData.border}"></span>${btnData.border}
-                </span>
-            </div>` : ''}
-            <div class="spec-row">
-                <span class="spec-label">Contrast</span>
-                <span class="spec-value contrast-badge ${isPass ? 'pass' : 'fail'}">
-                    ${btnData.ratio.toFixed(2)}:1 ${isPass ? 'AA' : 'Fail'}
-                </span>
-            </div>
-            <div class="spec-row">
-                <span class="spec-label">Hover</span>
-                <span class="spec-value">
-                    <span class="color-dot" style="background: ${type === 'primary' ? btnData.hover : btnData.hoverBg}"></span>
-                    ${type === 'primary' ? btnData.hover : btnData.hoverBg}
-                </span>
+            <div class="compact-specs">
+                <div class="spec-pill"><span class="dot" style="background:${btnData.bg}"></span>BG: ${btnData.bg}</div>
+                <div class="spec-pill"><span class="dot" style="background:${btnData.text}"></span>Text: ${btnData.text}</div>
+                <div class="spec-pill contrast ${isPass ? 'pass' : 'fail'}">${btnData.ratio.toFixed(1)}:1</div>
             </div>
         `;
     };
@@ -1114,16 +1214,83 @@ function downloadText(text, filename) {
 }
 
 // ========== TAB 2: BUTTON AUDIT ==========
-// Logic moved to initializeButtonAudit() to ensure proper loading order
-// and prevent null reference errors on startup.
+function initializeButtonAudit() {
+  const buttonAnalyzeBtn = document.getElementById('buttonAnalyzeBtn');
+  if (buttonAnalyzeBtn) {
+    buttonAnalyzeBtn.addEventListener('click', async () => {
+      const originalText = buttonAnalyzeBtn.innerHTML;
+      buttonAnalyzeBtn.disabled = true;
+      buttonAnalyzeBtn.innerHTML = '⏳ Analyzing...';
+
+      try {
+        await ensureFreshPage();
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        chrome.tabs.sendMessage(tab.id, { action: 'analyzeButtons' }, (response) => {
+          buttonAnalyzeBtn.disabled = false;
+          buttonAnalyzeBtn.innerHTML = originalText;
+
+          if (response && response.success) {
+            displayButtonResults(response.summary);
+          } else {
+            alert('Button Analysis failed: ' + (response?.error || 'Unknown error'));
+          }
+        });
+      } catch (e) {
+        console.error(e);
+        buttonAnalyzeBtn.disabled = false;
+        buttonAnalyzeBtn.innerHTML = originalText;
+      }
+    });
+  }
+
+  // Highlight All Buttons Issue
+  const highlightAllBtn = document.getElementById('highlightAllButtonsBtn');
+  if (highlightAllBtn) {
+    highlightAllBtn.addEventListener('click', () => {
+      if (!lastButtonSummary) return;
+      
+      const selectors = [
+        ...lastButtonSummary.capitalizationIssues.map(i => i.button.selector),
+        ...lastButtonSummary.destinationIssues.map(i => i.button.selector)
+      ];
+
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) {
+          chrome.tabs.sendMessage(tabs[0].id, { action: 'highlightButtons', selectors }, (response) => {
+            if (response && response.success) {
+              highlightAllBtn.innerHTML = '✅ Highlighted!';
+              const clearBtn = document.getElementById('clearButtonHighlightsBtn');
+              if (clearBtn) clearBtn.style.display = 'block';
+              setTimeout(() => highlightAllBtn.innerHTML = '<span class="btn-icon">👁️</span> Highlight All Issues', 2000);
+            }
+          });
+        }
+      });
+    });
+  }
+
+  // Clear Highlights
+  const clearBtn = document.getElementById('clearButtonHighlightsBtn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) {
+          chrome.tabs.sendMessage(tabs[0].id, { action: 'clearButtonHighlight' }, () => {
+            clearBtn.style.display = 'none';
+          });
+        }
+      });
+    });
+  }
+}
+
+let lastButtonSummary = null;
 
 function displayButtonResults(summary) {
   const buttonResults = document.getElementById('buttonResults');
   if (!buttonResults) return;
 
   buttonResults.style.display = 'block';
-
-  // Store summary for Highlight All
   lastButtonSummary = summary;
 
   // Show/Hide Actions based on issues
@@ -1133,158 +1300,146 @@ function displayButtonResults(summary) {
 
   if (buttonActions) {
     const hasIssues = (summary.capitalizationIssues.length + summary.destinationIssues.length) > 0;
-    buttonActions.style.display = hasIssues ? 'block' : 'none';
+    buttonActions.style.display = 'grid'; // Use grid for action buttons
+    buttonActions.style.gridTemplateColumns = '1fr 1fr';
+    buttonActions.style.gap = '8px';
+    buttonActions.style.margin = '15px 0';
 
-    // Reset buttons state
-    if (highlightAllBtn) highlightAllBtn.style.display = 'block';
-    if (clearHighlightsBtn) clearHighlightsBtn.style.display = 'none';
+    if (highlightAllBtn) {
+      highlightAllBtn.style.display = hasIssues ? 'block' : 'none';
+      highlightAllBtn.innerHTML = '<span class="btn-icon">👁️</span> Highlight All Issues';
+    }
+    if (clearHighlightsBtn) {
+      clearHighlightsBtn.style.display = 'none';
+    }
   }
 
+  const hasIssues = (summary.capitalizationIssues.length + summary.destinationIssues.length) > 0;
+  const statusType = summary.stats.total === 0 ? 'warning' : (hasIssues ? 'fail' : 'pass');
+  
   let html = `
-      <div class="button-status">
-        <div class="status-indicator ${summary.stats.total === 0 ? 'warning' : (summary.isValid ? 'pass' : 'fail')}">
-          ${summary.stats.total === 0 ? '⚠️ No Buttons Found' : (summary.isValid ? '✅ All Buttons Valid' : '⚠️ Button Issues Found')}
+      <div class="premium-status-card ${statusType}">
+        <div class="status-icon">${statusType === 'pass' ? '✅' : (statusType === 'warning' ? '⚠️' : '🚨')}</div>
+        <div class="status-content">
+          <div class="status-title">${summary.stats.total === 0 ? 'No Buttons Found' : (hasIssues ? 'Button Issues Detected' : 'All Buttons Valid')}</div>
+          <div class="status-desc">${summary.stats.total} buttons analyzed on this page.</div>
         </div>
       </div>
 
-      <div class="button-stats">
-        <div class="stat-box">
-          <span class="stat-icon">🔘</span>
-          <span class="stat-label">Total Buttons</span>
-          <span class="stat-value">${summary.stats.total}</span>
+      <div class="premium-stats-grid">
+        <div class="stat-pill total">
+          <span class="pill-label">Total</span>
+          <span class="pill-value">${summary.stats.total}</span>
         </div>
-        <div class="stat-box">
-          <span class="stat-icon">📝</span>
-          <span class="stat-label">Capitalization</span>
-          <span class="stat-value" style="color: #f59e0b;">${summary.stats.capitalizationIssues}</span>
+        <div class="stat-pill warning">
+          <span class="pill-label">Caps</span>
+          <span class="pill-value">${summary.stats.capitalizationIssues}</span>
         </div>
-        <div class="stat-box">
-          <span class="stat-icon">🔗</span>
-          <span class="stat-label">Destination</span>
-          <span class="stat-value" style="color: #ef4444;">${summary.stats.destinationIssues}</span>
+        <div class="stat-pill danger">
+          <span class="pill-label">Links</span>
+          <span class="pill-value">${summary.stats.destinationIssues}</span>
         </div>
       </div>
     `;
 
-  // Show capitalization issues
-  if (summary.capitalizationIssues.length > 0) {
-    html += `
-        <div class="button-issue-section">
-          <h3 class="section-title">📝 Capitalization Issues</h3>
-          <div class="issue-list">
-      `;
-
-    summary.capitalizationIssues.forEach(issue => {
+  // Show issues if any
+  if (hasIssues) {
+    html += `<div class="results-sections-wrapper">`;
+    
+    // Capitalization
+    if (summary.capitalizationIssues.length > 0) {
       html += `
-          <div class="button-issue" data-selector="${escapeHtml(issue.button.selector)}" data-issue-type="capitalization">
-            <div class="issue-header">
-              <span class="issue-text">"${escapeHtml(issue.button.text)}"</span>
-              <span class="issue-style">${issue.style}</span>
-            </div>
-            <div class="issue-message">⚠️ ${issue.message}</div>
-            <div class="highlight-hint">👆 Click to highlight on page</div>
-          </div>
-        `;
-    });
-
-    html += `</div></div>`;
-  }
-
-  // Show destination issues
-  if (summary.destinationIssues.length > 0) {
-    html += `
-        <div class="button-issue-section">
-          <h3 class="section-title">🔗 Destination Mismatches</h3>
-          <div class="issue-list">
+        <div class="result-group">
+          <div class="group-header">📝 Capitalization Issues</div>
+          <div class="issue-cards-container">
       `;
-
-    summary.destinationIssues.forEach(issue => {
-      html += `
-          <div class="button-issue" data-selector="${escapeHtml(issue.button.selector)}" data-issue-type="destination">
-            <div class="issue-header">
-              <span class="issue-text">"${escapeHtml(issue.button.text)}"</span>
-              <span class="issue-badge">Mismatch</span>
+      summary.capitalizationIssues.forEach(issue => {
+        html += `
+          <div class="premium-issue-card warning clickable" data-selector="${escapeHtml(issue.button.selector)}">
+            <div class="card-left">
+              <div class="card-main-text">"${escapeHtml(issue.button.text)}"</div>
+              <div class="card-sub-text">${issue.message}</div>
             </div>
-            <div class="issue-message">⚠️ ${issue.message}</div>
-            <div class="issue-dest">Destination: <code>${escapeHtml(issue.button.destination)}</code></div>
-            <div class="highlight-hint">👆 Click to highlight on page</div>
-          </div>
-        `;
-    });
-
-    html += `</div></div>`;
-  }
-
-  if (summary.buttons.length > 0) {
-    html += `
-        <div class="button-list-section">
-          <h3 class="section-title">📋 All Buttons (${summary.buttons.length})</h3>
-          <div class="button-grid" style="display: grid; gap: 8px; margin-top: 12px;">
-      `;
-
-    summary.buttons.slice(0, 50).forEach(button => {
-      html += `
-          <div class="button-card-item" style="
-            background: var(--bg-acc-2);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-          ">
-            <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
-                <span class="button-text" style="font-weight: 600; color: var(--text-main); font-size: 13px;">"${escapeHtml(button.text)}"</span>
-                <span style="font-size: 10px; padding: 2px 6px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-radius: 4px; white-space: nowrap;">${button.tagName}</span>
-            </div>
-            <div class="button-dest" style="font-family: monospace; font-size: 11px; color: var(--text-muted); word-break: break-all;">
-                ${escapeHtml(button.destination || 'No destination')}
+            <div class="card-right">
+              <span class="badge warning">${issue.style}</span>
+              <div class="card-arrow">→</div>
             </div>
           </div>
         `;
-    });
-
-    if (summary.buttons.length > 50) {
-      html += `<div class="button-row more" style="text-align: center; color: var(--text-muted); font-size: 12px; margin-top: 8px;">+ ${summary.buttons.length - 50} more buttons</div>`;
+      });
+      html += `</div></div>`;
     }
 
+    // Destination
+    if (summary.destinationIssues.length > 0) {
+      html += `
+        <div class="result-group">
+          <div class="group-header">🔗 Link Mismatches</div>
+          <div class="issue-cards-container">
+      `;
+      summary.destinationIssues.forEach(issue => {
+        html += `
+          <div class="premium-issue-card danger clickable" data-selector="${escapeHtml(issue.button.selector)}">
+            <div class="card-left">
+              <div class="card-main-text">"${escapeHtml(issue.button.text)}"</div>
+              <div class="card-sub-text">${issue.message}</div>
+              <div class="card-code-block">${escapeHtml(issue.button.destination)}</div>
+            </div>
+            <div class="card-right">
+              <div class="card-arrow">→</div>
+            </div>
+          </div>
+        `;
+      });
+      html += `</div></div>`;
+    }
+
+    html += `</div>`;
+  } else if (summary.stats.total > 0) {
+    html += `
+      <div class="empty-state-card success">
+        <div class="empty-icon">✨</div>
+        <div class="empty-title">Great Job!</div>
+        <div class="empty-desc">No accessibility issues found for the buttons on this page.</div>
+      </div>
+    `;
+  }
+
+  // All Buttons List (Collapsible or simplified)
+  if (summary.buttons.length > 0) {
+    html += `
+      <div class="result-group">
+        <div class="group-header">📋 Analyzed Buttons (${summary.buttons.length})</div>
+        <div class="premium-compact-list">
+    `;
+    summary.buttons.slice(0, 30).forEach(button => {
+      html += `
+        <div class="compact-item">
+          <span class="item-tag">${button.tagName}</span>
+          <span class="item-text">"${escapeHtml(button.text)}"</span>
+        </div>
+      `;
+    });
+    if (summary.buttons.length > 30) {
+      html += `<div class="list-more">+ ${summary.buttons.length - 30} more</div>`;
+    }
     html += `</div></div>`;
   }
 
   buttonResults.innerHTML = html;
 
-  // Add click handlers to button issues
-  setTimeout(() => {
-    const buttonIssues = buttonResults.querySelectorAll('.button-issue[data-selector]');
-    buttonIssues.forEach(issueElement => {
-      issueElement.style.cursor = 'pointer';
-      issueElement.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const selector = issueElement.getAttribute('data-selector');
-        const issueType = issueElement.getAttribute('data-issue-type');
-
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          if (tabs[0]) {
-            chrome.tabs.sendMessage(
-              tabs[0].id,
-              { action: 'highlightButton', selector: selector },
-              (response) => {
-                if (response && response.success) {
-                  console.log('Button highlighted:', selector);
-                } else {
-                  console.error('Failed to highlight button');
-                }
-              }
-            );
-          }
-        });
+  // Add click handlers
+  buttonResults.querySelectorAll('.premium-issue-card.clickable').forEach(card => {
+    card.addEventListener('click', () => {
+      const selector = card.getAttribute('data-selector');
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) {
+          chrome.tabs.sendMessage(tabs[0].id, { action: 'highlightButton', selector: selector });
+        }
       });
     });
-  }, 0);
+  });
 }
-
-// Global variable to store last results for Highlight All
-let lastButtonSummary = null;
 
 function toggleHighlightAllButtons() {
   const btn = document.getElementById('highlightAllButtonsBtn');
@@ -1331,14 +1486,14 @@ function clearButtonHighlights() {
   });
 }
 
-// Initialize button action listeners
-document.addEventListener('DOMContentLoaded', () => {
-  const highlightAllBtn = document.getElementById('highlightAllButtonsBtn');
-  const clearHighlightsBtn = document.getElementById('clearButtonHighlightsBtn');
+// Initialize button action listeners (Running inside main DOMContentLoaded)
+const highlightAllBtn = document.getElementById('highlightAllButtonsBtn');
+const clearHighlightsBtn = document.getElementById('clearButtonHighlightsBtn');
 
-  if (highlightAllBtn) highlightAllBtn.addEventListener('click', toggleHighlightAllButtons);
-  if (clearHighlightsBtn) clearHighlightsBtn.addEventListener('click', clearButtonHighlights);
-});
+if (highlightAllBtn) highlightAllBtn.addEventListener('click', toggleHighlightAllButtons);
+if (clearHighlightsBtn) clearHighlightsBtn.addEventListener('click', clearButtonHighlights);
+// End button highlight coordination
+
 
 // ========== TAB 3: FONT AUDIT ==========
 const fontAnalyzeBtn = document.getElementById('fontAnalyzeBtn');
@@ -1408,28 +1563,28 @@ function displayFontResults(summary) {
   const headings = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
   let html = `
-      <div class="font-summary">
-        <div class="summary-row">
-          <span>Total Headings:</span>
-          <span class="value">${summary.totalHeadings}</span>
+      <!-- Font Score Card -->
+      <div class="font-score-card">
+        <div class="font-main-stats">
+          <div class="font-stat-item">
+            <span class="font-stat-label">Headings</span>
+            <span class="font-stat-value">${summary.totalHeadings}</span>
+          </div>
+          <div class="font-stat-item">
+            <span class="font-stat-label">Paragraphs</span>
+            <span class="font-stat-value">${summary.totalParagraphs}</span>
+          </div>
         </div>
-        <div class="summary-row">
-          <span>Total Paragraphs:</span>
-          <span class="value">${summary.totalParagraphs}</span>
-        </div>
-      </div>
 
-      <div class="heading-breakdown">
-        <h3 class="section-title">📊 Heading Breakdown</h3>
-        <div class="heading-grid">
+        <div class="heading-pill-grid">
     `;
 
   headings.forEach(tag => {
     const data = summary[tag];
     html += `
-        <div class="heading-card">
-          <div class="heading-tag">${tag.toUpperCase()}</div>
-          <div class="heading-count">${data.count}</div>
+        <div class="heading-pill">
+          <span class="pill-tag">${tag.toUpperCase()}</span>
+          <span class="pill-count">${data.count}</span>
         </div>
       `;
   });
@@ -1439,23 +1594,18 @@ function displayFontResults(summary) {
       </div>
     `;
 
-  // Add issues if any
+  // Minimalist Issues List
   if (summary.issues && summary.issues.length > 0) {
-    html += `<div class="font-issues">
-        <h3 class="section-title" style="color: #f59e0b;">⚠️ Issues Found</h3>
+    html += `<div class="font-issues-list">
+        <h3 class="section-title" style="margin-bottom: 12px; font-size: 13px;">⚠️ Structure Insights</h3>
       `;
 
     summary.issues.forEach(issue => {
-      const iconMap = {
-        'critical': '❌',
-        'warning': '⚠️',
-        'info': 'ℹ️'
-      };
-
+      const severityIcon = issue.severity === 'critical' ? '🚫' : '⚠️';
       html += `
-          <div class="issue-item issue-${issue.severity}">
-            <span class="issue-icon">${iconMap[issue.severity]}</span>
-            <span class="issue-message">${issue.message}</span>
+          <div class="font-issue-card ${issue.severity}">
+            <span class="font-issue-icon">${severityIcon}</span>
+            <span class="font-issue-msg">${issue.message}</span>
           </div>
         `;
     });
@@ -1463,12 +1613,13 @@ function displayFontResults(summary) {
     html += `</div>`;
   }
 
-  // Add validation status
-  if (summary.hierarchyValid) {
-    html += `<div class="validation-pass">✅ Heading hierarchy is valid</div>`;
-  } else {
-    html += `<div class="validation-fail">❌ Heading hierarchy has issues</div>`;
-  }
+  // Validation Status
+  const isValid = summary.hierarchyValid;
+  html += `
+      <div class="validation-box ${isValid ? 'pass' : 'fail'}">
+        ${isValid ? '✅ Hierarchy looks perfect!' : '❌ Hierarchy needs attention'}
+      </div>
+    `;
 
   fontResults.innerHTML = html;
 }
@@ -2144,139 +2295,99 @@ function displayDuplicateOnly(data) {
 }
 
 function displayLoremOnly(data) {
-  console.log('📊 displayLoremOnly called with:', data);
-  // Defensive default
   data = data || { found: false, instances: [] };
-
   const container = document.getElementById('loremStatsOnly');
   const wrapper = document.getElementById('loremResultsOnly');
 
-  if (!container) {
-    console.error('❌ Element #loremStatsOnly not found in DOM!');
-    return;
-  }
-
-  // FORCE VISIBILITY of the wrapper with explicit style
-  if (wrapper) {
-    wrapper.style.display = 'block';
-  }
+  if (!container) return;
+  if (wrapper) wrapper.style.display = 'block';
 
   container.innerHTML = '';
   container.style.display = 'block';
 
-  if (data.found && data.instances.length > 0) {
-    console.log('Rendering', data.instances.length, 'items');
-    // Summary Header
-    const summaryHeader = document.createElement('div');
-    summaryHeader.className = 'validation-fail';
-    summaryHeader.style.marginBottom = '15px';
-    summaryHeader.innerHTML = `🚨 Found ${data.instances.length} instance${data.instances.length > 1 ? 's' : ''} of placeholder text.`;
-    container.appendChild(summaryHeader);
+  const hasInstances = data.found && data.instances.length > 0;
+  const statusType = hasInstances ? 'fail' : 'pass';
 
-    // HIGHLIGHT ALL BUTTON
-    if (data.instances.length > 0) {
-      const highlightAllBtn = document.createElement('button');
-      highlightAllBtn.className = 'btn btn-primary';
-      highlightAllBtn.style.width = '100%';
-      highlightAllBtn.style.marginBottom = '15px';
-      highlightAllBtn.innerHTML = '<span class="btn-icon">🔦</span> Highlight All On Page';
+  let html = `
+    <div class="premium-status-card ${statusType}">
+      <div class="status-icon">${statusType === 'pass' ? '✅' : '🚨'}</div>
+      <div class="status-content">
+        <div class="status-title">${hasInstances ? 'Placeholder Text Detected' : 'Content is Clean'}</div>
+        <div class="status-desc">${hasInstances ? `Found ${data.instances.length} instance${data.instances.length > 1 ? 's' : ''} of Lorem Ipsum.` : 'No placeholder text was found on this page.'}</div>
+      </div>
+    </div>
+  `;
 
-      highlightAllBtn.onclick = () => {
-        const originalText = highlightAllBtn.innerHTML;
-        highlightAllBtn.innerHTML = '🔦 Processing...';
-        highlightAllBtn.disabled = true;
+  if (hasInstances) {
+    html += `
+      <button id="highlightAllLoremBtn" class="btn btn-primary premium-action-btn" style="width:100%; margin: 15px 0;">
+        <span class="btn-icon">🔦</span> Highlight All on Page
+      </button>
+      <div class="issue-cards-container">
+    `;
 
-        const selectors = data.instances.map(i => i.path).filter(p => p);
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          if (tabs[0]) {
-            chrome.tabs.sendMessage(tabs[0].id, { action: 'highlightList', selectors: selectors }, (response) => {
-              if (chrome.runtime.lastError) {
-                console.warn('Connection failed:', chrome.runtime.lastError);
-                highlightAllBtn.innerHTML = '⚠️ Reload Page Required';
-                highlightAllBtn.title = 'Extension updated or connection lost. Please reload the page.';
-                highlightAllBtn.classList.remove('btn-primary');
-                highlightAllBtn.classList.add('btn-secondary'); // Use secondary to look disabled/warning
-                highlightAllBtn.style.border = '1px solid #ef4444';
-                highlightAllBtn.style.color = '#ef4444';
-                return; // Stay disabled
-              }
-
-              // Success
-              setTimeout(() => {
-                highlightAllBtn.innerHTML = originalText;
-                highlightAllBtn.disabled = false;
-              }, 800);
-            });
-          }
-        });
-      };
-      container.appendChild(highlightAllBtn);
-    }
-
-    // List Items
     data.instances.forEach((item, index) => {
-      const div = document.createElement('div');
-      div.className = 'result-item critical';
-      div.style.cssText = 'display: flex; flex-direction: column; gap: 8px; cursor: default;';
-
       const snippet = item.text || 'Lorem ipsum text...';
       const selector = item.path || 'Unknown location';
 
-      div.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <div class="result-icon" style="font-size: 18px;">📝</div>
-                <div>
-                   <div class="result-msg" style="font-weight: 600; color: var(--danger);">Lorem Ipsum Detected</div>
-                   <div class="result-detail" style="font-size: 11px; margin-top: 2px; color: var(--text-muted);">"${escapeHtml(snippet)}"</div>
-                </div>
-            </div>
-            <span style="font-size: 10px; background: var(--bg-main); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-color);">#${index + 1}</span>
+      html += `
+        <div class="premium-issue-card warning">
+          <div class="card-left">
+            <div class="card-tag">Instance #${index + 1}</div>
+            <div class="card-main-text context-snippet">"${escapeHtml(snippet)}"</div>
+            <div class="card-code-block selector-text">${escapeHtml(selector)}</div>
+          </div>
+          <div class="card-right">
+             <button class="icon-btn highlight-single-lorem" data-selector="${escapeHtml(selector)}" title="Highlight on Page">👁️</button>
+          </div>
         </div>
-        
-        <div style="background: var(--bg-main); padding: 8px; border-radius: 4px; font-size: 11px; font-family: monospace; color: var(--text-muted); border: 1px solid var(--border-color); overflow-x: auto;">
-            ${escapeHtml(selector)}
-        </div>
-
-        <button class="btn btn-sm btn-secondary highlight-lorem-btn" data-selector="${escapeHtml(selector)}" style="width: 100%; margin-top: 5px; font-size: 11px; height: 28px;">
-            <span class="btn-icon">👁️</span> Highlight on Page
-        </button>
       `;
-      container.appendChild(div);
     });
+    html += `</div>`;
   } else {
-    container.innerHTML = `
-        <div class="result-item info">
-            <div class="result-icon">✅</div>
-            <div class="result-content">
-                <div class="result-msg">Clean Content</div>
-                <div class="result-detail">No placeholder text detected.</div>
-            </div>
-        </div>
+    html += `
+      <div class="empty-state-card success">
+        <div class="empty-icon">✨</div>
+        <div class="empty-title">Ready for Production</div>
+        <div class="empty-desc">Your page content doesn't contain any common placeholder patterns.</div>
+      </div>
     `;
   }
 
+  container.innerHTML = html;
 
-  // Add event listeners for new highlight buttons
-  container.querySelectorAll('.highlight-lorem-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const selector = btn.getAttribute('data-selector');
-      // Disable temporarily to show feedback
-      const originalText = btn.innerHTML;
-      btn.innerHTML = '👀 Higgins...';
+  // Add Listeners
+  const highlightAllBtn = container.querySelector('#highlightAllLoremBtn');
+  if (highlightAllBtn) {
+    highlightAllBtn.onclick = () => {
+      const originalText = highlightAllBtn.innerHTML;
+      highlightAllBtn.innerHTML = '🔦 Highlighting...';
+      highlightAllBtn.disabled = true;
 
+      const selectors = data.instances.map(i => i.path).filter(p => p);
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (tabs[0]) {
-          chrome.tabs.sendMessage(tabs[0].id, { action: 'highlightButton', selector: selector }, () => {
-            // Reset button
-            setTimeout(() => btn.innerHTML = originalText, 1000);
+          chrome.tabs.sendMessage(tabs[0].id, { action: 'highlightList', selectors: selectors, label: 'Lorem Ipsum' }, () => {
+            setTimeout(() => {
+              highlightAllBtn.innerHTML = originalText;
+              highlightAllBtn.disabled = false;
+            }, 1000);
           });
         }
       });
-    });
+    };
+  }
+
+  container.querySelectorAll('.highlight-single-lorem').forEach(btn => {
+    btn.onclick = () => {
+      const selector = btn.getAttribute('data-selector');
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) {
+          chrome.tabs.sendMessage(tabs[0].id, { action: 'highlightList', selectors: [selector], label: 'Lorem Ipsum' });
+        }
+      });
+    };
   });
-
-
 }
 
 async function analyzeLinksOnly() {
@@ -2521,87 +2632,6 @@ if (imageAnalyzeBtn) {
   imageAnalyzeBtn.addEventListener('click', () => analyzeImages(false));
 }
 
-async function analyzeImages(isDownloader = false) {
-  if (isImageAnalyzing) {
-    console.log('⚠️ Already analyzing images...');
-    return;
-  }
-
-  const btnId = isDownloader ? 'downloaderAnalyzeBtn' : 'imageAnalyzeBtn';
-  const btn = document.getElementById(btnId);
-
-  try {
-    isImageAnalyzing = true;
-    console.log('🖼️ Starting image audit...');
-
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = '⏳ Scanning...';
-    }
-
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-    chrome.tabs.sendMessage(tab.id, { action: 'analyzeImages' }, (response) => {
-      if (chrome.runtime.lastError) {
-        console.error('Error:', chrome.runtime.lastError);
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = isDownloader ? '🔍 Find Images' : '🖼️ Scan Images';
-        }
-        isImageAnalyzing = false;
-        return;
-      }
-
-      if (response && response.success) {
-        console.log('✅ Image analysis complete:', response);
-
-        if (isDownloader) {
-          const downloaderResults = document.getElementById('downloaderResults');
-          if (downloaderResults) {
-            downloaderResults.style.display = 'block';
-            // Show bulk actions
-            const bulkActions = document.getElementById('bulkActions');
-            if (bulkActions) bulkActions.style.display = 'flex';
-            const selectionControl = document.getElementById('selectionControl');
-            if (selectionControl) selectionControl.style.display = 'flex';
-
-            const countEl = document.getElementById('downloaderCount');
-            if (countEl) countEl.textContent = response.totalImages;
-
-            // Render grid
-            renderImageDownloadGrid(document.getElementById('imageDownloadGrid'), response.allImages);
-          }
-        } else {
-          displayImageResults(response);
-        }
-
-        if (btn) btn.textContent = '✅ Scan Complete';
-
-        setTimeout(() => {
-          if (btn) {
-            btn.textContent = isDownloader ? '🔍 Find Images' : '🖼️ Scan Images';
-            btn.disabled = false;
-          }
-        }, 1500);
-      } else {
-        console.error('Analysis failed:', response?.error);
-        if (btn) {
-          btn.textContent = '❌ Analysis Failed';
-          btn.disabled = false;
-        }
-      }
-
-      isImageAnalyzing = false;
-    });
-  } catch (error) {
-    console.error('Image analysis error:', error);
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = isDownloader ? '🔍 Find Images' : '🖼️ Scan Images';
-    }
-    isImageAnalyzing = false;
-  }
-}
 
 function displayImageResults(response) {
   const { totalImages, issues, summary } = response;
@@ -2610,46 +2640,39 @@ function displayImageResults(response) {
 
   const totalCountEl = document.getElementById('totalImagesCount');
   const missingCountEl = document.getElementById('imageMissingCount');
-  const warningCountEl = document.getElementById('imageWarningCount');
 
   if (totalCountEl) totalCountEl.textContent = totalImages;
   if (missingCountEl) missingCountEl.textContent = summary.missingAlt;
-  if (warningCountEl) warningCountEl.textContent = summary.emptyAlt + summary.poorAltText;
 
-  // USER REQUEST: Only show images where alt text is MISSING (critical)
+  // USER REQUEST: Compact "mini-tiles" for missing alt text
   const visibleIssues = issues.filter(issue => issue.type === 'missing-alt');
+  const listContainer = document.getElementById('imageIssuesList');
 
-  let html = '';
+  if (!listContainer) return;
 
   if (visibleIssues.length === 0) {
-    if (issues.length > 0) {
-      html = '<div class="validation-pass">✅ No missing alt text found! (Warnings hidden)</div>';
-    } else {
-      html = '<div class="validation-pass">✅ All images are accessible!</div>';
-    }
+    listContainer.innerHTML = `
+      <div class="validation-box pass" style="grid-column: 1 / -1; width: 100%;">
+        ✅ All images have alt text!
+      </div>
+    `;
   } else {
-    visibleIssues.forEach((issue, index) => {
-      const severityClass = 'critical'; // Always critical for missing alt
-      const icon = '❌';
-
-      // Create thumbnail from src
+    let html = '';
+    visibleIssues.forEach((issue) => {
       html += `
-              <div class="violation-item ${severityClass}" data-selector="${escapeHtml(issue.selector)}">
-                <img src="${issue.src || ''}" onerror="this.style.display='none';this.parentNode.innerHTML='<div style=\'height:100%;display:flex;align-items:center;justify-content:center;color:#666;font-size:10px;\'>Broken Img</div>'">
-                <div class="violation-overlay">
-                    <span class="violation-tag">⚠️ MISSING ALT</span>
-                    <button class="highlight-btn">Highlight</button>
-                </div>
-              </div>
-            `;
+        <div class="image-mini-tile" data-selector="${escapeHtml(issue.selector)}" title="Click to highlight">
+          <img src="${issue.src || ''}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIGZpbGw9IiMzMzMiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk5OSIgZm9udC1zaXplPSI0Ij5Ccm9rZW48L3RleHQ+PC9zdmc+'">
+          <span class="tile-badge">Alt</span>
+          <div class="tile-overlay">
+            <span class="tile-action">Highlight</span>
+          </div>
+        </div>
+      `;
     });
-  }
-
-  const listContainer = document.getElementById('imageIssuesList');
-  if (listContainer) {
     listContainer.innerHTML = html;
+
     // Add click listeners for highlighting
-    listContainer.querySelectorAll('.violation-item').forEach(item => {
+    listContainer.querySelectorAll('.image-mini-tile').forEach(item => {
       item.addEventListener('click', () => {
         const selector = item.dataset.selector;
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -2675,734 +2698,104 @@ if (seoAnalyzeBtn) {
 }
 
 async function analyzeSEO() {
-  if (isSEOAnalyzing) {
-    console.log('⚠️ Already analyzing SEO...');
-    return;
-  }
+  if (isSEOAnalyzing) return;
 
   try {
     isSEOAnalyzing = true;
-    console.log('🔍 Starting SEO audit...');
-
     seoAnalyzeBtn.disabled = true;
-    seoAnalyzeBtn.textContent = '⏳ Analyzing...';
+    seoAnalyzeBtn.innerHTML = '⏳ Analyzing...';
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-    if (!tab || !tab.id) {
-      throw new Error('No active tab found');
-    }
+    if (!tab || !tab.id) throw new Error('No active tab');
 
     chrome.tabs.sendMessage(tab.id, { action: 'analyzeSEO' }, (response) => {
-      console.log('📩 SEO analysis response:', response);
-
-      if (chrome.runtime.lastError) {
-        console.error('❌ Error:', chrome.runtime.lastError.message);
-        seoAnalyzeBtn.textContent = '🔍 Analyze SEO';
-        seoAnalyzeBtn.disabled = false;
-        alert('Error: ' + chrome.runtime.lastError.message);
-        return;
-      }
+      isSEOAnalyzing = false;
+      seoAnalyzeBtn.disabled = false;
+      seoAnalyzeBtn.innerHTML = '🔍 Analyze SEO';
 
       if (response && response.success) {
-        console.log('✅ SEO audit successful!');
         displaySEOResults(response.summary);
-        seoAnalyzeBtn.textContent = '✅ Analysis Complete';
       } else {
-        console.error('❌ SEO audit failed:', response?.error);
-        alert('Error: ' + (response?.error || 'Analysis failed'));
-        seoAnalyzeBtn.textContent = '🔍 Analyze SEO';
+        alert('SEO Analysis failed: ' + (response?.error || 'Unknown error'));
       }
-
-      seoAnalyzeBtn.disabled = false;
-      isSEOAnalyzing = false;
     });
   } catch (error) {
-    console.error('❌ Error:', error);
-    seoAnalyzeBtn.textContent = '🔍 Analyze SEO';
-    seoAnalyzeBtn.disabled = false;
+    console.error(error);
     isSEOAnalyzing = false;
-    alert('Error: ' + error.message);
+    seoAnalyzeBtn.disabled = false;
+    seoAnalyzeBtn.innerHTML = '🔍 Analyze SEO';
   }
 }
 
 function displaySEOResults(summary) {
+  if (!summary) return;
+  const seoResults = document.getElementById('seoResults');
   if (!seoResults) return;
 
   seoResults.style.display = 'block';
-
+  
+  // SEO Score Card
   let html = `
-      <div class="seo-status">
-        <div class="status-indicator ${summary.isValid ? 'pass' : 'fail'}">
-          ${summary.isValid ? '✅ Good SEO Metadata' : '⚠️ SEO Issues Found'}
+    <div class="font-score-card">
+      <div class="font-main-stats">
+        <div class="font-stat-item">
+          <span class="font-stat-label">Title</span>
+          <span class="font-stat-value" style="color: ${summary.title ? 'var(--success)' : 'var(--danger)'}">
+            ${summary.title ? summary.title.length : 0} <small style="font-size: 10px; opacity: 0.7;">ch</small>
+          </span>
+        </div>
+        <div class="font-stat-item">
+          <span class="font-stat-label">Description</span>
+          <span class="font-stat-value" style="color: ${summary.description ? 'var(--success)' : 'var(--danger)'}">
+            ${summary.description ? summary.description.length : 0} <small style="font-size: 10px; opacity: 0.7;">ch</small>
+          </span>
         </div>
       </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+  `;
 
-      <div class="seo-stats">
-        <div class="stat-box">
-          <span class="stat-icon">📋</span>
-          <span class="stat-label">Critical</span>
-          <span class="stat-value" style="color: #ef4444;">${summary.stats.critical}</span>
+  // Title & Description Cards
+  const metaItems = [
+    { label: 'META TITLE', data: summary.title, fallback: 'No title tag found.' },
+    { label: 'DESCRIPTION', data: summary.description, fallback: 'No meta description found.' }
+  ];
+
+  metaItems.forEach(item => {
+    html += `
+      <div class="font-issue-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-weight: 700; font-size: 11px; font-family: 'Outfit'; color: var(--text-muted); opacity: 0.8;">📄 ${item.label}</span>
+          <div class="validation-box ${item.data ? 'pass' : 'fail'}">${item.data ? 'PASS' : 'FAIL'}</div>
         </div>
-        <div class="stat-box">
-          <span class="stat-icon">⚠️</span>
-          <span class="stat-label">Warnings</span>
-          <span class="stat-value" style="color: #f59e0b;">${summary.stats.warning}</span>
-        </div>
-        <div class="stat-box">
-          <span class="stat-icon">ℹ️</span>
-          <span class="stat-label">Info</span>
-          <span class="stat-value" style="color: #3b82f6;">${summary.stats.info}</span>
+        <div style="font-size: 11px; color: var(--text-main); line-height: 1.5; background: rgba(0,0,0,0.15); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+          ${item.data ? escapeHtml(item.data.value) : item.fallback}
         </div>
       </div>
     `;
+  });
 
-  // Meta Title
-  html += `
-      <div class="seo-card">
-        <div class="card-header">
-          <span class="card-title">📄 Meta Title</span>
-          ${summary.title ? `<span class="length-badge">${summary.title.length} chars</span>` : '<span class="length-badge missing">Missing</span>'}
-        </div>
-        <div class="card-body">
-    `;
-
-  if (summary.title) {
-    html += `
-          <div class="meta-value">${escapeHtml(summary.title.value)}</div>
-          <div class="length-info">
-            <span class="length-bar">
-              <span class="length-fill" style="width: ${Math.min(100, (summary.title.length / 60) * 100)}%"></span>
-            </span>
-            <span class="length-text">${summary.title.length} / 50-60 recommended</span>
-          </div>
-      `;
-  } else {
-    html += `<div class="missing-info">No meta title found. Add &lt;title&gt; tag to your HTML.</div>`;
-  }
-
-  html += `</div></div>`;
-
-  // Meta Description
-  html += `
-      <div class="seo-card">
-        <div class="card-header">
-          <span class="card-title">📝 Meta Description</span>
-          ${summary.description ? `<span class="length-badge">${summary.description.length} chars</span>` : '<span class="length-badge missing">Missing</span>'}
-        </div>
-        <div class="card-body">
-    `;
-
-  if (summary.description) {
-    html += `
-          <div class="meta-value">${escapeHtml(summary.description.value)}</div>
-          <div class="length-info">
-            <span class="length-bar">
-              <span class="length-fill" style="width: ${Math.min(100, (summary.description.length / 160) * 100)}%"></span>
-            </span>
-            <span class="length-text">${summary.description.length} / 150-160 recommended</span>
-          </div>
-      `;
-  } else {
-    html += `<div class="missing-info">No meta description found. Add &lt;meta name="description" content="..."&gt; to your HTML.</div>`;
-  }
-
-  html += `</div></div>`;
-
-  // Open Graph (if available)
-  if (summary.ogTitle || summary.ogDescription) {
-    html += `<div class="seo-card open-graph">
-        <div class="card-header">
-          <span class="card-title">🌐 Open Graph Tags</span>
-          <span class="badge-success">Found</span>
-        </div>
-        <div class="card-body">
-      `;
-
-    if (summary.ogTitle) {
-      html += `
-          <div class="og-item">
-            <span class="og-label">OG Title:</span>
-            <span class="og-value">${escapeHtml(summary.ogTitle.value)}</span>
-          </div>
-        `;
-    }
-
-    if (summary.ogDescription) {
-      html += `
-          <div class="og-item">
-            <span class="og-label">OG Description:</span>
-            <span class="og-value">${escapeHtml(summary.ogDescription.value)}</span>
-          </div>
-        `;
-    }
-
-    html += `</div></div>`;
-  }
-
-  // Issues List
+  // Optimization Tips
   if (summary.issues && summary.issues.length > 0) {
-    html += `
-        <div class="seo-issues">
-          <h3 class="section-title">🔍 Issues Found</h3>
-      `;
-
+    const iconMap = { 'critical': '❌', 'warning': '⚠️', 'info': 'ℹ️' };
+    html += `<h3 class="section-title" style="font-size: 12px; margin-top: 8px; margin-bottom: 8px; font-family: 'Outfit';">🔍 Optimization Tips</h3>`;
     summary.issues.forEach(issue => {
-      const iconMap = {
-        'critical': '❌',
-        'warning': '⚠️',
-        'info': 'ℹ️'
-      };
-
       html += `
-          <div class="issue-row issue-${issue.severity}">
-            <span class="issue-icon">${iconMap[issue.severity]}</span>
-            <span class="issue-msg">${issue.message}</span>
+        <div class="font-issue-card">
+          <div style="display: flex; align-items: flex-start; gap: 12px;">
+            <span style="font-size: 14px;">${iconMap[issue.severity] || 'ℹ️'}</span>
+            <div style="font-size: 11px; color: var(--text-muted); line-height: 1.5;">${issue.message}</div>
           </div>
-        `;
+        </div>
+      `;
     });
-
-    html += `</div>`;
   }
 
+  html += `</div>`;
   seoResults.innerHTML = html;
 }
 
 // ========== TAB 9: TOOLS & UTILITIES ==========
-// Screenshot button moved to main analyze section
-
-// Load page information on Tools tab
-function loadPageInfo() {
-  const [tab] = chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs && tabs[0]) {
-      document.getElementById('pageUrl').textContent = tabs[0].url || 'N/A';
-      document.getElementById('pageTitle').textContent = tabs[0].title || 'N/A';
-    }
-  });
-
-  // Try to get meta description
-  const [activeTab] = chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs && tabs[0]) {
-      chrome.tabs.sendMessage(tabs[0].id, { action: 'getPageMeta' }, (response) => {
-        if (response && response.description) {
-          document.getElementById('pageDesc').textContent = response.description;
-        }
-      });
-    }
-  });
-}
-
-// Load page info when tools tab is clicked
-document.querySelector('[data-tab="tools"]')?.addEventListener('click', loadPageInfo);
-
-function escapeHtml(text) {
-  const map = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
-  };
-  return text.replace(/[&<>"']/g, m => map[m]);
-}
-
-// Navigation System
-let currentFeature = 'home';
-
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-  initializeNavigation();
-  initializeFeatures();
-});
-
-// Navigation
-function initializeNavigation() {
-  const featureCards = document.querySelectorAll('.feature-card');
-  const backBtn = document.getElementById('backBtn');
-
-  // Feature card clicks
-  featureCards.forEach(card => {
-    card.addEventListener('click', () => {
-      const feature = card.dataset.feature;
-      if (!card.classList.contains('coming-soon')) {
-        navigateToFeature(feature);
-      }
-    });
-  });
-
-  // Back button
-  if (backBtn) {
-    backBtn.addEventListener('click', () => navigateToHome());
-  }
-
-  // Initialize independent features
-
-  initializeColorExtractor();
-}
-
-// START: Fresh Screen / Reset State Logic
-function resetFeatureState(feature) {
-  if (!feature) return;
-  console.log('🔄 Resetting state for:', feature);
-
-  // Dynamic containers (Safe to clear)
-  // Dynamic containers (Clear innerHTML)
-  const dynamicIds = ['buttonResults', 'fontResults', 'seoResults', 'linkGridOnly', 'loremStatsOnly', 'contentSplitResults'];
-  dynamicIds.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.style.display = 'none';
-      el.innerHTML = '';
-    }
-  });
-
-  // Static/Mixed containers (Hide ONLY, do not clear innerHTML)
-  const staticIds = ['imageResults', 'manualResults', 'themeResults', 'colorResults', 'downloaderResults', 'contentResults', 'linkResultsOnly', 'loremResultsOnly'];
-  staticIds.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'none';
-  });
-
-  // Reset Analysis Buttons and specific UI states
-  const resetStates = {
-    'buttons': () => {
-      const btn = document.getElementById('buttonAnalyzeBtn');
-      if (btn) { btn.disabled = false; btn.innerHTML = '<span class="btn-icon">🔍</span>Analyze Buttons'; }
-      const act = document.getElementById('buttonActions');
-      if (act) act.style.display = 'none';
-    },
-    'images': () => {
-      const btn = document.getElementById('imageAnalyzeBtn');
-      if (btn) { btn.disabled = false; btn.innerHTML = '<span class="btn-icon">🖼️</span>Scan Images'; }
-    },
-    'seo': () => {
-      const btn = document.getElementById('seoAnalyzeBtn');
-      if (btn) { btn.disabled = false; btn.innerHTML = '<span class="btn-icon">🔍</span>Analyze SEO'; }
-    },
-    'manual': () => {
-      // Reset inputs to default
-      if (document.getElementById('textColor')) {
-        document.getElementById('textColor').value = '#000000';
-        document.getElementById('textColorPicker').value = '#000000';
-      }
-      if (document.getElementById('bgColor')) {
-        document.getElementById('bgColor').value = '#ffffff';
-        document.getElementById('bgColorPicker').value = '#ffffff';
-      }
-      const results = document.getElementById('manualResults');
-      if (results) results.style.display = 'none';
-    },
-    'links': () => {
-      const btn = document.getElementById('runLinkAuditBtnOnly');
-      if (btn) { btn.disabled = false; btn.innerHTML = '<span class="btn-icon">▶️</span>Analyze Buttons'; }
-    },
-    'lorem': () => {
-      const btn = document.getElementById('runLoremAuditBtn');
-      if (btn) { btn.disabled = false; btn.innerHTML = '<span class="btn-icon">▶️</span>Scan for Lorem Ipsum'; }
-    },
-    'contentHelper': () => {
-      const btn = document.getElementById('processContentBtn');
-      if (btn) { btn.disabled = false; btn.innerHTML = '<span class="btn-icon">✂️</span>Split Content'; }
-      const display = document.getElementById('splitterFileNameDisplay');
-      if (display) display.textContent = '(No files selected)';
-    },
-    'selfAudit': () => {
-      const btn = document.getElementById('startSelfAuditBtn');
-      if (btn) { btn.disabled = false; btn.innerHTML = '<span class="btn-icon">🚀</span> Start Self-Audit'; }
-      const stopBtn = document.getElementById('stopSelfAuditBtn');
-      if (stopBtn) stopBtn.style.display = 'inline-block'; // Or manage visibility
-    }
-  };
-
-  if (resetStates[feature]) {
-    resetStates[feature]();
-  }
-}
-// END: Reset State Logic
-
-function navigateToFeature(feature) {
-  currentFeature = feature;
-
-  // Hide home tab
-  document.getElementById('homeTab').classList.remove('active');
-
-  // Show feature tab
-  const tabId = feature.endsWith('Tab') ? feature : feature + 'Tab';
-  const featureTab = document.getElementById(tabId);
-
-  console.log(`Navigating to: ${feature} -> ID: ${tabId}, Found: ${!!featureTab}`);
-
-  if (featureTab) {
-    featureTab.classList.add('active');
-    // Ensure fresh screen when navigating from home
-    resetFeatureState(feature);
-  } else {
-    console.error(`Tab not found for feature: ${feature}`);
-  }
-
-
-
-  // Show back button
-  document.getElementById('backNav').style.display = 'block';
-}
-
-function navigateToHome() {
-  currentFeature = 'home';
-
-  // Hide all feature tabs
-  document.querySelectorAll('.tab-content').forEach(tab => {
-    tab.classList.remove('active');
-  });
-
-  // Show home tab
-  document.getElementById('homeTab').classList.add('active');
-
-  // Hide back button
-  document.getElementById('backNav').style.display = 'none';
-}
-
-
-
-function renderImageDownloadGrid(container, images) {
-  container.innerHTML = '';
-  if (!images || images.length === 0) {
-    container.innerHTML = '<p>No images found.</p>';
-    return;
-  }
-
-  images.forEach(img => {
-    const item = document.createElement('div');
-    item.className = 'image-item';
-    item.innerHTML = `
-          <div class="image-preview-box" style="height: 100px; display: flex; align-items: center; justify-content: center; background: #2a2a2a; overflow: hidden; border-radius: 4px; border: 1px solid var(--border-color);">
-              <img src="${img.src}" alt="preview" style="max-height: 100%; max-width: 100%; object-fit: contain;">
-          </div>
-          <div class="image-info" style="margin-top: 8px;">
-              <div style="font-size: 11px; font-weight: 600; color: var(--text-main); margin-bottom: 2px;">${img.width} x ${img.height}</div>
-              <div style="color: var(--text-muted); font-size: 10px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 100%;" title="${img.src}">${img.src.substring(0, 30)}...</div>
-          </div>
-          <div class="image-select-overlay">
-              <input type="checkbox" class="image-checkbox" title="Select image">
-          </div>
-          <div class="image-actions">
-              <button class="icon-btn download-img-btn" title="Download">⬇️</button>
-          </div>
-        `;
-
-    item.querySelector('.download-img-btn').addEventListener('click', () => {
-      chrome.downloads.download({
-        url: img.src,
-        filename: `image-${Date.now()}.png`
-      });
-    });
-
-    // Handle checkbox selection
-    const checkbox = item.querySelector('.image-checkbox');
-    checkbox.addEventListener('change', () => {
-      updateSelectionState();
-    });
-
-    container.appendChild(item);
-  });
-
-
-  // Enable/Disable Select All based on image count
-  const selectAll = document.getElementById('selectAllCheckbox');
-  if (selectAll) {
-    selectAll.disabled = false;
-    selectAll.checked = false;
-  }
-}
-
-function updateSelectionState() {
-  const checkboxes = document.querySelectorAll('.image-checkbox:checked');
-  const count = checkboxes.length;
-  const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
-  const countSpan = document.getElementById('selectedCount');
-
-  if (downloadSelectedBtn && countSpan) {
-    countSpan.textContent = count;
-    downloadSelectedBtn.disabled = count === 0;
-
-    // Update button text/style based on count
-    if (count > 0) {
-      downloadSelectedBtn.classList.remove('btn-secondary');
-      downloadSelectedBtn.classList.add('btn-primary');
-    } else {
-      downloadSelectedBtn.classList.add('btn-secondary');
-      downloadSelectedBtn.classList.remove('btn-primary');
-    }
-  }
-
-  // Update Select All checkbox state
-  const totalCheckboxes = document.querySelectorAll('.image-checkbox');
-  const selectAll = document.getElementById('selectAllCheckbox');
-  if (selectAll && totalCheckboxes.length > 0) {
-    selectAll.checked = checkboxes.length === totalCheckboxes.length;
-    selectAll.indeterminate = count > 0 && count < totalCheckboxes.length;
-  }
-}
-
-function downloadAllImages() {
-  const images = document.querySelectorAll('.image-item img');
-  let delay = 0;
-
-  const statusBadge = document.getElementById('statusBadge');
-  if (statusBadge) statusBadge.textContent = `Downloading ${images.length} images...`;
-
-  images.forEach(img => {
-    setTimeout(() => {
-      chrome.downloads.download({
-        url: img.src,
-        filename: `batch - ${Date.now()}.png`
-      });
-    }, delay);
-    delay += 200; // 200ms delay between downloads to prevent choking
-  });
-}
-
-function downloadSelectedImages() {
-  const checkboxes = document.querySelectorAll('.image-checkbox:checked');
-  let delay = 0;
-
-  checkboxes.forEach(cb => {
-    const imgItem = cb.closest('.image-item');
-    const img = imgItem.querySelector('img');
-
-    setTimeout(() => {
-      chrome.downloads.download({
-        url: img.src,
-        filename: `selected - ${Date.now()}.png`
-      });
-    }, delay);
-    delay += 200;
-  });
-}
-
-// Feature Initialization
-function initializeFeatures() {
-  initializeContrastAnalyzer();
-  initializeButtonAudit();
-  initializeFontAudit();
-  initializeImageAudit();
-  initializeSEOAudit();
-  initializeManualChecker();
-  initializeThemeGenerator();
-  initializeColorExtractor();
-  initializeImageDownloader();
-  initializeContentSplitter();
-}
-
-// 1. CONTRAST ANALYZER
-function initializeContrastAnalyzer() {
-  // Event listeners already set up at the beginning
-  // No need to duplicate them here
-}
-
-// 2. BUTTON AUDIT
-// 2. BUTTON AUDIT
-// 2. BUTTON AUDIT
-function initializeButtonAudit() {
-  const btn = document.getElementById('buttonAnalyzeBtn');
-  const results = document.getElementById('buttonResults');
-  let isAnalyzing = false;
-
-  if (btn) {
-    // Clone to remove any old listeners
-    const newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, btn);
-
-    newBtn.addEventListener('click', async () => {
-      if (isAnalyzing) return;
-      isAnalyzing = true;
-
-      const originalText = newBtn.innerHTML;
-      newBtn.disabled = true;
-      newBtn.innerHTML = '⏳ Analyzing...';
-
-      // Reset and show results container
-      results.style.display = 'block';
-      results.innerHTML = '<div class="result-item"><div class="loading-spinner"></div> Analyzing buttons...</div>';
-
-      try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-        // Send message
-        chrome.tabs.sendMessage(tab.id, { action: 'analyzeButtons' }, (response) => {
-          isAnalyzing = false;
-
-          if (chrome.runtime.lastError) {
-            console.error(chrome.runtime.lastError);
-            results.innerHTML = `
-              <div class="status-indicator fail">
-                 ⚠️ Connection Error
-              </div>
-              <div class="result-item">
-                 <p style="margin-bottom:8px">Cannot connect to the page. Try reloading the page.</p>
-                 <small style="opacity:0.7">${chrome.runtime.lastError.message}</small>
-              </div>
-            `;
-            newBtn.disabled = false;
-            newBtn.innerHTML = originalText;
-            return;
-          }
-
-          if (response && response.success) {
-            displayButtonResults(response.summary);
-            newBtn.innerHTML = '✅ Done';
-            setTimeout(() => {
-              newBtn.disabled = false;
-              newBtn.innerHTML = originalText;
-            }, 2000);
-          } else {
-            results.innerHTML = `
-              <div class="status-indicator fail">
-                 ⚠️ Analysis Failed
-              </div>
-              <div class="result-item">
-                 <p>${response?.error || 'Unknown error occurred.'}</p>
-              </div>
-            `;
-            newBtn.disabled = false;
-            newBtn.innerHTML = originalText;
-          }
-        });
-      } catch (e) {
-        console.error(e);
-        isAnalyzing = false;
-        results.innerHTML = `
-              <div class="status-indicator fail">
-                 ⚠️ Error
-              </div>
-              <div class="result-item">
-                 <p>${e.message || 'An unexpected error occurred.'}</p>
-              </div>
-            `;
-        newBtn.disabled = false;
-        newBtn.innerHTML = originalText;
-      }
-    });
-  }
-}
-
-// Minimal Button Summary
-// Minimal Button Summary - (Logic merged into displayButtonResults)
-
-
-
-
-function renderImageIssues(issues) {
-  const list = document.getElementById('imageIssuesList');
-  if (!list) return;
-
-  list.innerHTML = '';
-  if (issues.length === 0) {
-    list.innerHTML = '<p class="status-pass">✅ No accessibility issues found!</p>';
-    return;
-  }
-
-  issues.forEach(issue => {
-    const div = document.createElement('div');
-    div.style.cssText = 'padding: 8px; border-bottom: 1px solid #eee; font-size: 12px; cursor: pointer; transition: background 0.2s;';
-    div.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div><strong>${issue.type}</strong>: ${issue.message}</div>
-          <div style="font-size:10px; color:var(--primary);">👆 Click to highlight</div>
-      </div>
-      `;
-
-    div.addEventListener('mouseenter', () => div.style.background = 'rgba(0,0,0,0.05)');
-    div.addEventListener('mouseleave', () => div.style.background = 'transparent');
-
-    div.addEventListener('click', () => {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs[0]) {
-          chrome.tabs.sendMessage(tabs[0].id, {
-            action: 'highlightImage',
-            elementIndex: issue.index,
-            selector: issue.selector,
-            src: issue.context
-          });
-        }
-      });
-    });
-
-    list.appendChild(div);
-  });
-}
-
-
-// 3. FONT AUDIT
-function initializeFontAudit() {
-  const btn = document.getElementById('fontAnalyzeBtn');
-  const results = document.getElementById('fontResults');
-
-  if (btn) {
-    btn.addEventListener('click', async () => {
-      btn.disabled = true;
-      btn.textContent = '⏳ Analyzing...';
-
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      chrome.tabs.sendMessage(tab.id, { action: 'analyzeFonts' }, (response) => {
-        btn.disabled = false;
-        btn.innerHTML = '<span class="btn-icon">🔤</span>Analyze Fonts';
-
-        if (response && response.success) {
-          results.style.display = 'block';
-          renderFontResults(results, response.summary);
-        }
-      });
-    });
-  }
-}
-
-// Minimal Font Summary (Grid)
-function renderFontResults(container, summary) {
-  container.innerHTML = '';
-  if (!summary) return;
-
-  const headings = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p'];
-
-  const grid = document.createElement('div');
-  grid.style.cssText = 'display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px;';
-
-  headings.forEach(tag => {
-    const count = tag === 'p' ? (summary.paragraphs ? summary.paragraphs.count : 0) : (summary[tag] ? summary[tag].count : 0);
-    const isHeading = tag.startsWith('h');
-
-    const item = document.createElement('div');
-    item.style.cssText = `
-  background: var(--bg - acc - 2);
-  border: 1px solid var(--border - color);
-  border - radius: 6px;
-  padding: 10px;
-  text - align: center;
-  `;
-
-    item.innerHTML = `
-    <div style="font-weight: 700; color: ${isHeading ? 'var(--primary)' : 'var(--text-muted)'}; font-size: 14px; text-transform: uppercase;">${tag}</div>
-      <div style="font-size: 18px; font-weight: 600; margin-top: 4px; color: var(--text-main);">${count}</div>
-  `;
-
-    grid.appendChild(item);
-  });
-
-  container.appendChild(grid);
-
-  if (summary.totalHeadings === 0) {
-    container.innerHTML += '<p style="margin-top:15px; color:#666; font-size:13px; text-align:center;">No headings found.</p>';
-  }
-}
-
-// 4. IMAGE AUDIT
-function initializeImageAudit() {
-  const btn = document.getElementById('imageAnalyzeBtn');
-  if (btn) {
-    btn.onclick = () => analyzeImages(false);
-  }
-}
-
-// 4.5 IMAGE DOWNLOADER
 function initializeImageDownloader() {
   const analyzeBtn = document.getElementById('downloaderAnalyzeBtn');
   const downloadAllBtn = document.getElementById('downloadAllBtn');
@@ -3430,165 +2823,298 @@ function initializeImageDownloader() {
   }
 }
 
-// 5. SEO AUDIT
-function initializeSEOAudit() {
-  const btn = document.getElementById('seoAnalyzeBtn');
-  const results = document.getElementById('seoResults');
+async function analyzeImages(isDownloader = false) {
+  const btn = isDownloader ? document.getElementById('downloaderAnalyzeBtn') : document.getElementById('imageAnalyzeBtn');
+  const results = isDownloader ? document.getElementById('downloaderResults') : document.getElementById('imageResults');
+  if (!btn || !results) return;
+  
+  if (isImageAnalyzing) return;
+  
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
 
-  if (btn) {
-    btn.addEventListener('click', async () => {
-      btn.disabled = true;
-      btn.textContent = '⏳ Analyzing...';
+  try {
+    isImageAnalyzing = true;
+    btn.innerHTML = '⏳ Refreshing...';
+    
+    await ensureFreshPage();
+    
+    btn.innerHTML = '⏳ Analyzing...';
 
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      chrome.tabs.sendMessage(tab.id, { action: 'analyzeSEO' }, (response) => {
-        btn.disabled = false;
-        btn.innerHTML = '<span class="btn-icon">🔍</span>Analyze SEO';
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    chrome.tabs.sendMessage(tab.id, { action: 'analyzeImages' }, (response) => {
+      isImageAnalyzing = false;
+      btn.disabled = false;
+      btn.innerHTML = originalText;
 
-        if (response && response.success) {
-          results.style.display = 'block';
-          renderSEOResults(results, response.summary);
-        }
-      });
-    });
-  }
-}
-
-function renderSEOResults(container, data) {
-  container.innerHTML = '';
-
-  const titleVal = data.title ? data.title.value : null;
-  const descVal = data.description ? data.description.value : null;
-  // H1 is not directly in summary root, need to check how to get H1 count/text if needed.
-  // Actually, SEOAnalyzer summary struct is { title, description, ogTitle, issues, ... }
-  // It doesn't seem to pass H1 explicitly in the top level properties, but maybe in stats?
-  // Let's check keys. The analyzer output shows keys: title, description, ogTitle...
-  // It checks H1 in FontAnalyzer, not SEOAnalyzer usually? 
-  // Wait, the original code looked for data.h1. SEOAnalyzer does NOT return h1.
-  // We should remove H1 from SEO result or fetch it separately. For now, let's just show what we have.
-
-  const items = [
-    { label: 'Title', value: titleVal, valid: !!titleVal },
-    { label: 'Description', value: descVal, valid: !!descVal }
-  ];
-
-  items.forEach(item => {
-    const div = document.createElement('div');
-    div.style.cssText = 'padding: 10px; border-bottom: 1px solid #eee;';
-    div.innerHTML = `
-    <div style="font-weight: 600; font-size: 12px; color: #555;">${item.label}</div>
-      <div style="margin-top: 4px; ${item.valid ? '' : 'color: red; font-style: italic;'}">${item.value || '(Missing)'}</div>
-  `;
-    container.appendChild(div);
-  });
-}
-
-// 6. TOOLS
-function initializeTools() {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs[0]) {
-      document.getElementById('pageUrl').textContent = new URL(tabs[0].url).hostname;
-      document.getElementById('pageTitle').textContent = tabs[0].title;
-    }
-  });
-}
-
-
-
-function initializeColorExtractor() {
-  const colorAnalyzeBtn = document.getElementById('colorAnalyzeBtn');
-  const colorResults = document.getElementById('colorResults');
-  const textColorGrid = document.getElementById('textColorGrid');
-  const bgColorGrid = document.getElementById('bgColorGrid');
-  const borderColorGrid = document.getElementById('borderColorGrid');
-
-  if (colorAnalyzeBtn) {
-    colorAnalyzeBtn.addEventListener('click', analyzeColors);
-  }
-
-  // Duplicate listener removed
-
-
-  async function analyzeColors() {
-    try {
-      colorAnalyzeBtn.disabled = true;
-      colorAnalyzeBtn.textContent = '⏳ Extracting...';
-
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-      chrome.tabs.sendMessage(tab.id, { action: 'analyzeColors' }, (response) => {
-        if (response && response.success) {
-          displayColorResults(response);
+      if (response && response.success) {
+        results.style.display = 'block';
+        if (isDownloader) {
+          const countEl = document.getElementById('downloaderCount');
+          if (countEl) countEl.textContent = response.totalImages;
+          const bulkActions = document.getElementById('bulkActions');
+          if (bulkActions) bulkActions.style.display = 'flex';
+          const selectionControl = document.getElementById('selectionControl');
+          if (selectionControl) selectionControl.style.display = 'flex';
+          renderImageDownloadGrid(document.getElementById('imageDownloadGrid'), response.allImages);
         } else {
-          console.error('Color extraction failed');
+          displayImageResults(response);
         }
-        colorAnalyzeBtn.disabled = false;
-        colorAnalyzeBtn.textContent = '🔍 Extract Colors';
-      });
-    } catch (e) {
-      console.error(e);
-      colorAnalyzeBtn.disabled = false;
-      colorAnalyzeBtn.textContent = '🔍 Extract Colors';
-    }
-  }
-
-  function displayColorResults(data) {
-    colorResults.style.display = 'block';
-    document.getElementById('totalColorsCount').textContent = data.total || 0;
-
-    renderColorGrid(textColorGrid, data.details.text);
-    renderColorGrid(bgColorGrid, data.details.background);
-    renderColorGrid(borderColorGrid, data.details.border);
-  }
-
-  function renderColorGrid(container, colors) {
-    container.innerHTML = '';
-    if (!colors || colors.length === 0) {
-      container.innerHTML = '<p style="font-size:12px; color:var(--text-light)">No colors found</p>';
-      return;
-    }
-
-    colors.forEach(color => {
-      const item = document.createElement('div');
-      item.className = 'palette-item';
-      item.innerHTML = `
-            <div class="palette-color" style="background: ${color}; height: 40px; border-radius: 4px;"></div>
-            <div class="palette-hex" title="Click to copy">${color}</div>
-          `;
-
-      item.querySelector('.palette-hex').addEventListener('click', () => {
-        navigator.clipboard.writeText(color);
-        const original = item.querySelector('.palette-hex').textContent;
-        item.querySelector('.palette-hex').textContent = 'Copied!';
-        setTimeout(() => {
-          item.querySelector('.palette-hex').textContent = original;
-        }, 1000);
-      });
-
-      container.appendChild(item);
+      }
     });
+  } catch (e) {
+    console.error(e);
+    isImageAnalyzing = false;
+    btn.disabled = false;
+    btn.innerHTML = originalText;
   }
 }
 
-
-
-// Duplicate analyzeImages function removed
-
-
-function renderImageIssues(issues) {
-  const list = document.getElementById('imageIssuesList');
-  if (!list) return;
-
-  list.innerHTML = '';
-  if (issues.length === 0) {
-    list.innerHTML = '<p class="status-pass">✅ No accessibility issues found!</p>';
+function renderImageDownloadGrid(container, images) {
+  if (!container) return;
+  container.innerHTML = '';
+  if (!images || images.length === 0) {
+    container.innerHTML = '<p>No images found.</p>';
     return;
   }
 
-  issues.forEach(issue => {
-    const div = document.createElement('div');
-    div.style.cssText = 'padding: 8px; border-bottom: 1px solid #eee; font-size: 12px;';
-    div.innerHTML = `<strong>${issue.type}</strong>: ${issue.message}`;
-    list.appendChild(div);
+  images.forEach(img => {
+    const item = document.createElement('div');
+    item.className = 'image-item';
+    item.innerHTML = `
+          <div class="image-preview-box" style="height: 100px; display: flex; align-items: center; justify-content: center; background: #1a1a1a; overflow: hidden; border-radius: 4px;">
+              <img src="${img.src}" alt="preview" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+          </div>
+          <div class="image-info" style="margin-top: 8px;">
+              <div style="font-size: 11px; font-weight: 600; color: var(--text-main); margin-bottom: 2px;">${img.width} x ${img.height}</div>
+              <div style="color: var(--text-dim); font-size: 9px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 100%;" title="${img.src}">${img.src.substring(0, 30)}...</div>
+          </div>
+          <div class="image-select-overlay">
+              <input type="checkbox" class="image-checkbox">
+          </div>
+          <div class="image-actions">
+              <button class="icon-btn download-img-btn" title="Download">⬇️</button>
+          </div>
+        `;
+
+    item.querySelector('.download-img-btn').addEventListener('click', () => {
+      chrome.downloads.download({
+        url: img.src,
+        filename: `image-${Date.now()}.png`
+      });
+    });
+
+    const checkbox = item.querySelector('.image-checkbox');
+    checkbox.addEventListener('change', () => {
+      updateSelectionState();
+    });
+
+    container.appendChild(item);
+  });
+
+  const selectAll = document.getElementById('selectAllCheckbox');
+  if (selectAll) {
+    selectAll.disabled = false;
+    selectAll.checked = false;
+  }
+}
+
+function updateSelectionState() {
+  const checkboxes = document.querySelectorAll('.image-checkbox:checked');
+  const count = checkboxes.length;
+  const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
+  const countSpan = document.getElementById('selectedCount');
+
+  if (downloadSelectedBtn && countSpan) {
+    countSpan.textContent = count;
+    downloadSelectedBtn.disabled = count === 0;
+  }
+}
+
+function downloadAllImages() {
+  const images = document.querySelectorAll('.image-item img');
+  images.forEach((img, i) => {
+    setTimeout(() => {
+      chrome.downloads.download({
+        url: img.src,
+        filename: `all-${i}-${Date.now()}.png`
+      });
+    }, i * 200);
   });
 }
+
+function downloadSelectedImages() {
+  const checkboxes = document.querySelectorAll('.image-checkbox:checked');
+  checkboxes.forEach((cb, i) => {
+    const imgItem = cb.closest('.image-item');
+    const img = imgItem.querySelector('img');
+    setTimeout(() => {
+      chrome.downloads.download({
+        url: img.src,
+        filename: `selected-${i}-${Date.now()}.png`
+      });
+    }, i * 200);
+  });
+}
+
+function initializeColorExtractor() {
+  const colorAnalyzeBtn = document.getElementById('colorAnalyzeBtn');
+  if (colorAnalyzeBtn) {
+    colorAnalyzeBtn.onclick = async () => {
+      colorAnalyzeBtn.disabled = true;
+      colorAnalyzeBtn.innerHTML = '⏳ Extracting...';
+      try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        chrome.tabs.sendMessage(tab.id, { action: 'analyzeColors' }, (response) => {
+          if (response && response.success) {
+            displayColorResults(response);
+          }
+          colorAnalyzeBtn.disabled = false;
+          colorAnalyzeBtn.innerHTML = '🔍 Extract Colors';
+        });
+      } catch (e) {
+        console.error(e);
+        colorAnalyzeBtn.disabled = false;
+        colorAnalyzeBtn.innerHTML = '🔍 Extract Colors';
+      }
+    };
+  }
+
+  function displayColorResults(data) {
+    const results = document.getElementById('colorResults');
+    if (!results) return;
+
+    results.style.display = 'block';
+    results.innerHTML = `
+      <div class="compact-results-header">
+        <div class="result-badge">
+          <span class="badge-count">${data.total || 0}</span>
+          <span class="badge-text">Unique Colors Found</span>
+        </div>
+      </div>
+      
+      <div id="textColorsGroup" class="color-group"></div>
+      <div id="bgColorsGroup" class="color-group"></div>
+      <div id="borderColorsGroup" class="color-group"></div>
+    `;
+    
+    results.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    renderPremiumChips(document.getElementById('textColorsGroup'), 'Text Colors', data.details.text);
+    renderPremiumChips(document.getElementById('bgColorsGroup'), 'Background Colors', data.details.background);
+    renderPremiumChips(document.getElementById('borderColorsGroup'), 'Border Colors', data.details.border);
+  }
+
+  function renderPremiumChips(container, title, colors) {
+    if (!container) return;
+    if (!colors || colors.length === 0) {
+      container.innerHTML = ''; // Hide empty groups
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="color-section-header">
+        <h4>${title}</h4>
+        <span class="color-count-pill">${colors.length}</span>
+      </div>
+      <div class="color-chip-grid"></div>
+    `;
+
+    const grid = container.querySelector('.color-chip-grid');
+    colors.forEach(color => {
+      const chip = document.createElement('div');
+      chip.className = 'color-chip';
+      const hex = color.toUpperCase();
+      
+      chip.innerHTML = `
+        <div class="color-chip-swatch" style="background-color: ${color}"></div>
+        <div class="color-chip-info">
+          <span class="color-chip-hex">${hex}</span>
+          <span class="color-chip-action">Copy</span>
+        </div>
+      `;
+
+      chip.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(color);
+          chip.classList.add('copied');
+          const actionText = chip.querySelector('.color-chip-action');
+          actionText.textContent = 'Copied!';
+          setTimeout(() => {
+            chip.classList.remove('copied');
+            actionText.textContent = 'Copy';
+          }, 1500);
+        } catch (err) {
+          console.error('Failed to copy color:', err);
+        }
+      };
+      
+      grid.appendChild(chip);
+    });
+  }
+}
+
+function initializeFeatures() {
+  // initializeContrastAnalyzer function was merged into analyzePage logic
+  initializeButtonAudit();
+  initializeManualChecker();
+  initializeThemeGenerator();
+  initializeColorExtractor();
+  initializeImageDownloader();
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+  return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+// Navigation Logic
+function initializeNavigation() {
+  const featureCards = document.querySelectorAll('.feature-card');
+  const backBtn = document.getElementById('backBtn');
+
+  featureCards.forEach(card => {
+    card.addEventListener('click', () => {
+      if (!card.classList.contains('coming-soon')) navigateToFeature(card.dataset.feature);
+    });
+  });
+
+  if (backBtn) backBtn.addEventListener('click', navigateToHome);
+
+  const grid = document.querySelector('.features-grid');
+  if (grid) {
+    grid.addEventListener('mousemove', (e) => {
+      document.querySelectorAll('.feature-card').forEach(card => {
+        const rect = card.getBoundingClientRect();
+        card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+        card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+      });
+    });
+  }
+}
+
+function navigateToFeature(feature) {
+  document.getElementById('homeTab').classList.remove('active');
+  const tab = document.getElementById(feature.endsWith('Tab') ? feature : feature + 'Tab');
+  if (tab) tab.classList.add('active');
+  const nav = document.getElementById('backNav');
+  if (nav) nav.style.display = 'block';
+
+  // Reset internal states of complex features
+  if (window.selfAudit) window.selfAudit.resetUI();
+}
+
+function navigateToHome() {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('homeTab').classList.add('active');
+  document.getElementById('backNav').style.display = 'none';
+
+  // Reset internal states
+  if (window.selfAudit) window.selfAudit.resetUI();
+}
+
+// Final Initialization
+initializeNavigation();
+initializeFeatures();
+});

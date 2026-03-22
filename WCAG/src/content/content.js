@@ -4,43 +4,66 @@
 	try {
 		console.log('Visual Contrast Checker: Content script loaded (SafeGuard Active)');
 
-		// Inject highlight CSS
+		// Inject premium highlight CSS
 		const highlightCss = document.createElement('style');
 		highlightCss.id = 'wcag-highlight-styles';
 		highlightCss.textContent = `
-		@keyframes wcag-pulse {
-			0%, 100% {
-				box-shadow: 0 0 0 2px #fca5a5, inset 0 0 20px rgba(239, 68, 68, 0.2);
-			}
-			50% {
-				box-shadow: 0 0 0 5px #fca5a5, inset 0 0 20px rgba(239, 68, 68, 0.4);
-			}
+		@keyframes wcag-glow {
+			0%, 100% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.4), inset 0 0 10px rgba(239, 68, 68, 0.1); }
+			50% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.6), inset 0 0 20px rgba(239, 68, 68, 0.2); }
 		}
 		
-		.wcag-button-highlight {
-			position: fixed;
-			border: 3px solid #ef4444 !important;
-			background-color: rgba(239, 68, 68, 0.1) !important;
+		.wcag-button-highlight, .wcag-button-highlight-multi, .wcag-image-highlight {
+			position: absolute !important;
+			border: 2px solid #ef4444 !important;
+			background-color: rgba(239, 68, 68, 0.05) !important;
 			pointer-events: none !important;
-			z-index: 999999 !important;
-			box-shadow: 0 0 0 2px #fca5a5, inset 0 0 20px rgba(239, 68, 68, 0.2) !important;
+			z-index: 2147483647 !important;
+			border-radius: 6px !important;
+			animation: wcag-glow 2s ease-in-out infinite !important;
+			box-sizing: border-box !important;
+			transition: all 0.3s ease !important;
+		}
+
+		.wcag-highlight-label {
+			position: absolute;
+			top: -28px;
+			left: 0;
+			background: linear-gradient(135deg, #ef4444, #dc2626);
+			color: white;
+			padding: 4px 10px;
+			border-radius: 6px;
+			font-size: 11px;
+			font-weight: 700;
+			font-family: 'Inter', sans-serif;
+			box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+			white-space: nowrap;
+			z-index: 2147483647;
+		}
+		
+		.wcag-highlight-multi {
+			position: absolute !important;
+			border: 2px dashed #f59e0b !important;
+			background-color: rgba(245, 158, 11, 0.1) !important;
+			pointer-events: none !important;
+			z-index: 10000 !important;
 			border-radius: 4px !important;
-			animation: wcag-pulse 2s ease-in-out infinite !important;
 		}
 	`;
 		document.head.appendChild(highlightCss);
 
-		// Listen for messages from popup
 		chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			console.log('📨 Content script received message:', request.action);
+			
 			if (request.action === 'ping') {
 				sendResponse({ success: true, message: 'pong' });
 				return true;
 			}
+
 			switch (request.action) {
 				case 'analyze':
 					handleAnalyze(request, sendResponse);
-					return true; // Keep channel open for async response
+					return true;
 				case 'analyzeFonts':
 					handleFontAnalysis(sendResponse);
 					return true;
@@ -70,25 +93,25 @@
 					return true;
 				case 'clearButtonHighlight':
 					handleClearButtonHighlight(sendResponse);
-					return false;
+					return true;
 				case 'showViolations':
 					handleShowViolations(sendResponse);
 					return true;
 				case 'hideViolations':
 					handleHideViolations(sendResponse);
-					return false;
+					return true;
 				case 'toggleViolations':
 					handleToggleViolations(sendResponse);
-					return false;
+					return true;
 				case 'exportReport':
 					handleExportReport(sendResponse);
-					return false;
+					return true;
 				case 'getStatus':
 					handleGetStatus(sendResponse);
-					return false;
+					return true;
 				case 'getPageMeta':
 					handleGetPageMeta(sendResponse);
-					return false;
+					return true;
 				case 'captureFullPage':
 					handleCaptureFullPage(sendResponse);
 					return true;
@@ -105,8 +128,9 @@
 					handleCrawlNav(sendResponse);
 					return true;
 				case 'highlightContentDiff':
-					handleHighlightContentDiff(request);
-					return false;
+					handleHighlightContentDiff(request).then(results => {
+						sendResponse(results);
+					});
 					return true;
 				case 'highlightImage':
 					handleHighlightImage(request, sendResponse);
@@ -117,50 +141,29 @@
 				case 'clearContentHighlights':
 					handleClearContentHighlights(sendResponse);
 					return true;
-				case 'highlightButton':
-					handleHighlightButton(request, sendResponse);
-					return true;
 				case 'highlightList':
 					handleHighlightList(request, sendResponse);
 					return true;
 				default:
-					sendResponse({ success: false, error: 'Unknown action' });
+					sendResponse({ success: false, error: 'Unknown action: ' + request.action });
 					return false;
 			}
 		});
 
 		async function handleAnalyzeAll(sendResponse) {
 			try {
-				// Explicitly wrap each handler to unify the Promise interface
-				// handleAnalyze expects (request, sendResponse)
-				const contrastPromise = new Promise(resolve => {
-					handleAnalyze({ options: { contrast: true, silent: true } }, (res) => resolve(res));
-				});
-
-				// Other handlers expect (sendResponse)
-				const buttonPromise = new Promise(resolve => handleButtonAnalysis((res) => resolve(res)));
-				const fontPromise = new Promise(resolve => handleFontAnalysis((res) => resolve(res)));
-				const imagePromise = new Promise(resolve => handleImageAnalysis((res) => resolve(res)));
-				const seoPromise = new Promise(resolve => handleSEOAnalysis((res) => resolve(res)));
-				const contentPromise = new Promise(resolve => handleContentAnalysis((res) => resolve(res)));
-
-				// Run all audits in parallel
-				const [contrast, buttons, fonts, images, seo, content] = await Promise.all([
-					contrastPromise,
-					buttonPromise,
-					fontPromise,
-					imagePromise,
-					seoPromise,
-					contentPromise
+				console.log('🚀 Standardizing analysis for SiteLens Engine...');
+				
+				// Run all core analyzers
+				const [contrast, buttons, fonts, images, seo, content, links] = await Promise.all([
+					ContrastAnalyzer.analyzePage().then(v => ({ summary: ContrastAnalyzer.getViolationsSummary(), violations: v })),
+					ButtonAnalyzer.analyzePage(),
+					FontAnalyzer.analyzePage(),
+					ImageAnalyzer.analyzePage(),
+					SEOAnalyzer.analyzePage(),
+					ContentAnalyzer.analyze(),
+					LinkAnalyzer.extractLinks ? { links: LinkAnalyzer.extractLinks() } : { links: [] }
 				]);
-
-				// Check Lorem (part of content/other checks)
-				const loremPromise = new Promise(resolve => handleContentAnalysis((res) => resolve(res)));
-
-				// Link Audit
-				const linkPromise = new Promise(resolve => handleLinkAnalysis((res) => resolve(res)));
-
-				const [lorem, linksData] = await Promise.all([loremPromise, linkPromise]);
 
 				sendResponse({
 					success: true,
@@ -170,8 +173,8 @@
 						fonts,
 						images,
 						seo,
-						lorem,
-						links: linksData // naming it 'links' for consistency
+						content,
+						links: links.links
 					}
 				});
 
@@ -180,6 +183,8 @@
 				sendResponse({ success: false, error: error.message });
 			}
 		}
+
+
 
 		function handleGetPageText(sendResponse) {
 			try {
@@ -296,10 +301,15 @@
 				// 1. Contrast Audit
 				if (options.contrast) {
 					ContrastAnalyzer.clearViolations();
-					if (options.showHighlights !== false) ContrastOverlay.hide(); // Default to hiding unless specified
+					// Only hide if we aren't planning to show highlights immediately
+					if (options.silent || (options.buttons || options.images || options.seo)) {
+						ContrastOverlay.hide();
+					}
 
 					const violations = await ContrastAnalyzer.analyzePage();
-					allViolations = [...allViolations, ...violations];
+					// Add type to each violation
+					const contrastViolations = violations.map(v => ({ ...v, type: 'contrast' }));
+					allViolations = [...allViolations, ...contrastViolations];
 
 					const summary = ContrastAnalyzer.getViolationsSummary();
 					fullSummary.contrast = summary;
@@ -313,6 +323,7 @@
 					if (btnSummary.issues && btnSummary.issues.length > 0) {
 						const btnViolations = btnSummary.issues.map(issue => ({
 							type: 'button',
+							category: 'button',
 							message: issue.message,
 							context: issue.text || 'Button',
 							selector: issue.selector,
@@ -329,6 +340,7 @@
 					if (imgResult.issues && imgResult.issues.length > 0) {
 						const imgViolations = imgResult.issues.map(issue => ({
 							type: 'image',
+							category: 'image',
 							message: issue.message,
 							context: issue.src || 'Image',
 							selector: issue.selector,
@@ -346,6 +358,7 @@
 					if (seoSummary.title.status === 'missing' || seoSummary.title.length < 10) {
 						allViolations.push({
 							type: 'seo',
+							category: 'seo',
 							message: seoSummary.title.status === 'missing' ? 'Missing Title' : 'Title too short',
 							context: 'Page Title'
 						});
@@ -353,16 +366,18 @@
 					if (seoSummary.description.status === 'missing' || seoSummary.description.length < 50) {
 						allViolations.push({
 							type: 'seo',
+							category: 'seo',
 							message: seoSummary.description.status === 'missing' ? 'Missing Meta Description' : 'Description too short',
 							context: 'Meta Description'
 						});
 					}
 				}
 
-				// Show contrast violations if it was the main/only check AND not silent
-				if (options.contrast && !options.buttons && !options.images && !options.seo && !options.silent) {
-					if (allViolations.length > 0) {
-						ContrastOverlay.showViolations(allViolations.filter(v => v.type !== 'button' && v.type !== 'image' && v.type !== 'seo'));
+				// Show contrast violations if it was requested (and not silent)
+				if (options.contrast && !options.silent) {
+					const violationsToShow = allViolations.filter(v => v.type === 'contrast');
+					if (violationsToShow.length > 0) {
+						ContrastOverlay.showViolations(violationsToShow);
 					}
 				}
 
@@ -595,78 +610,42 @@
 				try {
 					element = document.querySelector(selector);
 				} catch (e) {
-					console.warn('Invalid selector, attempting to fix:', selector);
-					// Fallback: If it looks like an ID but has strange chars, try escaping
+					console.warn('Invalid selector, attempting fallback:', selector);
 					if (selector.startsWith('#')) {
-						try {
-							const idPart = selector.substring(1);
-							element = document.getElementById(idPart); // Faster and handles some chars better
-							if (!element) {
-								// Try CSS escaping strictly
-								element = document.querySelector('#' + CSS.escape(idPart));
-							}
-						} catch (e2) {
-							console.error('Fallback selector failed:', e2);
-						}
+						const idPart = selector.substring(1);
+						element = document.getElementById(idPart) || document.querySelector('#' + CSS.escape(idPart));
 					}
 				}
 
 				if (!element) {
-					console.warn('Button element not found for selector:', selector);
-					sendResponse({ success: false, error: 'Button element not found' });
+					sendResponse({ success: false, error: 'Element not found' });
 					return;
 				}
 
-				// Scroll into view first
 				element.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-				// Create highlight overlay
-				const highlight = document.createElement('div');
-				highlight.id = 'wcag-button-highlight';
-				highlight.className = 'wcag-button-highlight';
-
-				// Get element position and dimensions
 				setTimeout(() => {
 					const rect = element.getBoundingClientRect();
-					highlight.style.position = 'absolute';
+					const highlight = document.createElement('div');
+					highlight.id = 'wcag-button-highlight';
+					highlight.className = 'wcag-button-highlight';
+					
 					highlight.style.top = (rect.top + window.scrollY) + 'px';
 					highlight.style.left = (rect.left + window.scrollX) + 'px';
 					highlight.style.width = rect.width + 'px';
 					highlight.style.height = rect.height + 'px';
-					highlight.style.border = '3px solid #ef4444';
-					highlight.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
-					highlight.style.boxShadow = '0 0 0 4px rgba(239, 68, 68, 0.4), 0 0 20px rgba(0,0,0,0.5)';
-					highlight.style.pointerEvents = 'none';
-					highlight.style.zIndex = '2147483647'; // Max z-index
-					highlight.style.transition = 'all 0.3s ease';
-					highlight.style.borderRadius = '4px';
+
+					// Add Label
+					const label = document.createElement('div');
+					label.className = 'wcag-highlight-label';
+					label.textContent = request.message || 'Button Issue';
+					highlight.appendChild(label);
 
 					document.body.appendChild(highlight);
-
-					// Pulse animation
-					let scale = 1;
-					const pulse = setInterval(() => {
-						scale = scale === 1 ? 1.02 : 1;
-						highlight.style.transform = `scale(${scale})`;
-					}, 500);
-
-					// Auto-remove after 3 seconds? Or clear on next click?
-					// content.js usually clears on next click (line 556: clearButtonHighlight()). 
-					// But let's attach the interval ID to the element so we can clear it.
-					highlight.dataset.pulseId = pulse;
-				}, 300); // Wait for scroll alignment.style.boxShadow = '0 0 0 2px #fca5a5, inset 0 0 20px rgba(239, 68, 68, 0.2)';
-				highlight.style.borderRadius = '4px';
-				highlight.style.animation = 'wcag-pulse 2s ease-in-out infinite';
-
-				document.body.appendChild(highlight);
-
-				// Scroll to element with offset
-				const targetScroll = rect.top + window.scrollY - 100;
-				window.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
-
-				sendResponse({ success: true });
+					sendResponse({ success: true });
+				}, 300);
 			} catch (error) {
-				console.error('Button highlight error:', error);
+				console.error('Highlight error:', error);
 				sendResponse({ success: false, error: error.message });
 			}
 		}
@@ -693,20 +672,17 @@
 						if (rect.width > 0 && rect.height > 0) {
 							const highlight = document.createElement('div');
 							highlight.className = 'wcag-highlight-multi';
-							highlight.style.position = 'absolute';
 							highlight.style.top = (rect.top + window.scrollY) + 'px';
 							highlight.style.left = (rect.left + window.scrollX) + 'px';
 							highlight.style.width = rect.width + 'px';
 							highlight.style.height = rect.height + 'px';
 
-							// Style: Striped red
-							highlight.style.backgroundColor = 'rgba(255, 80, 80, 0.4)';
-							highlight.style.backgroundImage = 'linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent)';
-							highlight.style.backgroundSize = '20px 20px';
-							highlight.style.border = '2px dashed #ff0000';
-							highlight.style.zIndex = '10000';
-							highlight.style.pointerEvents = 'none';
-							highlight.style.borderRadius = '4px';
+							// Add Label
+							const label = document.createElement('div');
+							label.className = 'wcag-highlight-label';
+							label.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)'; // Amber for content
+							label.textContent = request.label || 'Content Issue';
+							highlight.appendChild(label);
 
 							document.body.appendChild(highlight);
 							count++;
@@ -771,13 +747,11 @@
 			highlight.style.width = rect.width + 'px';
 			highlight.style.height = rect.height + 'px';
 
-			highlight.style.border = '3px solid #ef4444';
-			highlight.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
-			highlight.style.pointerEvents = 'none';
-			highlight.style.zIndex = '999999';
-			highlight.style.boxShadow = '0 0 0 2px #fca5a5, inset 0 0 20px rgba(239, 68, 68, 0.2)';
-			highlight.style.borderRadius = '4px';
-			highlight.style.animation = 'wcag-pulse 2s ease-in-out infinite';
+			// Add Label
+			const label = document.createElement('div');
+			label.className = 'wcag-highlight-label';
+			label.textContent = 'Button Issue';
+			highlight.appendChild(label);
 
 			document.body.appendChild(highlight);
 		}
@@ -1084,29 +1058,15 @@
 				// Create overlay
 				const overlay = document.createElement('div');
 				overlay.className = 'wcag-image-highlight';
-				overlay.style.position = 'absolute';
 				overlay.style.top = (rect.top + window.scrollY) + 'px';
 				overlay.style.left = (rect.left + window.scrollX) + 'px';
 				overlay.style.width = rect.width + 'px';
 				overlay.style.height = rect.height + 'px';
-				overlay.style.border = '4px solid #ef4444';
-				overlay.style.background = 'rgba(239, 68, 68, 0.2)';
-				overlay.style.zIndex = '999999';
-				overlay.style.pointerEvents = 'none';
-				overlay.style.borderRadius = '4px';
 
-				// Label
+				// Premium Label
 				const label = document.createElement('div');
-				label.textContent = 'Missing Alt Text';
-				label.style.position = 'absolute';
-				label.style.top = '-24px';
-				label.style.left = '0';
-				label.style.background = '#ef4444';
-				label.style.color = '#fff';
-				label.style.padding = '2px 8px';
-				label.style.borderRadius = '4px';
-				label.style.fontSize = '12px';
-				label.style.fontWeight = 'bold';
+				label.className = 'wcag-highlight-label';
+				label.textContent = request.message || 'Missing Alt Text';
 				overlay.appendChild(label);
 
 				document.body.appendChild(overlay);
@@ -1263,101 +1223,164 @@
 		/**
 		 * Handle Content Diff Highlighting
 		 */
-		function handleHighlightContentDiff(request) {
-			// 1. Inject Styles
+		async function handleHighlightContentDiff(request) {
+			console.log('🏁 Starting handleHighlightContentDiff', request.sourceLines?.length);
+
+			// Helper for unified normalization
+			const normalize = (str) => str.toLowerCase().replace(/[\u00a0\s]+/g, ' ').trim();
+
+			// 0. Auto-Scroll to trigger lazy loading (Optimized Speed)
+			const originalScrollY = window.scrollY;
+			let lastHeight = 0;
+			let currentHeight = document.documentElement.scrollHeight;
+			let scrollAttempts = 0;
+			const maxAttempts = 15; // Balanced limit
+
+			console.log('📜 Fast Aggressive Scrolling Started...');
+			const scrollNotice = document.createElement('div');
+			scrollNotice.style.cssText = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.9); color:white; padding:12px 24px; border-radius:30px; z-index:2147483647; font-family:sans-serif; font-size:13px; pointer-events:none; border:2px solid #6366f1; box-shadow: 0 10px 30px rgba(0,0,0,0.5);';
+			scrollNotice.innerHTML = '🔄 <span style="font-weight:700; color:#6366f1;">SiteLens:</span> Scanning for new content...';
+			document.body.appendChild(scrollNotice);
+
+			try {
+				while (lastHeight < currentHeight && scrollAttempts < maxAttempts) {
+					lastHeight = currentHeight;
+					window.scrollTo(0, currentHeight);
+					
+					// Faster check
+					await new Promise(r => setTimeout(r, 600)); 
+					
+					currentHeight = document.documentElement.scrollHeight;
+					scrollAttempts++;
+				}
+				window.scrollTo({ top: originalScrollY, behavior: 'instant' });
+				await new Promise(r => setTimeout(r, 200));
+			} finally {
+				if (scrollNotice.parentNode) scrollNotice.remove();
+			}
+
+			// 1. Inject Styles...
 			if (!document.getElementById('wcag-diff-styles')) {
 				const style = document.createElement('style');
 				style.id = 'wcag-diff-styles';
 				style.textContent = `
-            .wcag-diff-found {
-                outline: 2px solid #16a34a !important; /* Green 600 */
-                background-color: rgba(22, 163, 74, 0.2) !important;
-                position: relative;
-            }
-            .wcag-diff-found::after {
-                content: "✅ " attr(data-wcag-label);
-                position: absolute;
-                top: -1.5em; /* Position above */
-                right: 0;
-                background: #16a34a;
-                color: white;
-                font-size: 10px;
-                padding: 2px 6px;
-                border-radius: 4px;
-                white-space: nowrap;
-                z-index: 1000;
-                pointer-events: none;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }
-            .wcag-diff-extra {
-                outline: 3px dashed #dc2626 !important; /* Red 600 */
-                background-color: rgba(220, 38, 38, 0.15) !important;
-                position: relative;
-            }
-            /* Adjustments for block elements */
-            .wcag-diff-found, .wcag-diff-extra {
-                box-decoration-break: clone;
-                -webkit-box-decoration-break: clone;
-            }
-        `;
+                    .wcag-diff-found { outline: 2px solid #10b981 !important; background-color: rgba(16, 185, 129, 0.1) !important; position: relative; border-radius: 4px; z-index: 100 !important; }
+                    .wcag-diff-found::after { content: "✓ Match"; position: absolute; top: -24px; right: 0; background: #10b981; color: white; font-size: 10px; padding: 2px 8px; border-radius: 6px; z-index: 1000; font-weight: 700; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); }
+                    .wcag-diff-extra { outline: 2px dashed #ef4444 !important; background-color: rgba(239, 68, 68, 0.03) !important; position: relative; border-radius: 4px; }
+                    .wcag-diff-extra::after { content: "× Extra"; position: absolute; top: -24px; right: 0; background: #ef4444; color: white; font-size: 10px; padding: 2px 8px; border-radius: 6px; z-index: 1000; font-weight: 700; opacity: 0.8; }
+                `;
 				document.head.appendChild(style);
 			}
 
 			// 2. Clear old highlights
 			document.querySelectorAll('.wcag-diff-found, .wcag-diff-extra').forEach(el => {
 				el.classList.remove('wcag-diff-found', 'wcag-diff-extra');
-				el.removeAttribute('data-wcag-label');
 			});
 
-			if (!request.sourceLines || request.sourceLines.length === 0) return;
+			if (!request.sourceLines || request.sourceLines.length === 0) return { success: true, matchCount: 0, totalLines: 0, missingLines: [] };
 
 			// 3. Prepare Source Lines
-			const sourceSet = new Set(request.sourceLines.map(l => l.toLowerCase().replace(/\s+/g, ' ').trim()));
+			const sourceLines = request.sourceLines.map(l => l.trim()).filter(l => l.length > 0);
+			const sourceSet = new Set(sourceLines.map(normalize));
+			const foundSet = new Set();
 
-			// 4. Element-Level Traversal
+			// 4. Analysis Phase 1: Identify Matches (Bottom-Up)
 			const contentSelectors = 'p, h1, h2, h3, h4, h5, h6, li, td, th, blockquote, figcaption, span, a, label, div';
-			const elements = document.querySelectorAll(contentSelectors);
-
-			let matchCount = 0;
+			const elements = Array.from(document.querySelectorAll(contentSelectors)).reverse();
 
 			elements.forEach(el => {
-				// Filter out non-visible or structural mess
-				if (el.offsetParent === null) return; // Hidden
-				if (el.closest('.wcag-overlay')) return; // Ignore our own UI
+				if (el.offsetParent === null || el.closest('.wcag-overlay')) return;
 				if (['SCRIPT', 'STYLE', 'NOSCRIPT', 'SVG', 'IMG', 'IFRAME'].includes(el.tagName)) return;
+				
+				// Case A: Descendant already found? skip container to avoid double highlight
+				if (el.querySelector('.wcag-diff-found')) return;
 
-				// "Leaf-ish" check: Matches if it has text AND (no children OR children are inline only).
-				const text = el.innerText.replace(/\s+/g, ' ').trim();
-				if (text.length < 2) return;
+				const text = el.innerText || el.textContent || '';
+				
+				// LINE MATCHING: Split by newline to respect the "jaha se new line start ho" requirement
+				const rawLinesOnPage = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+				let elementHasMatch = false;
 
-				const textLower = text.toLowerCase();
-
-				if (sourceSet.has(textLower)) {
-					el.classList.add('wcag-diff-found');
-					el.setAttribute('data-wcag-label', 'Match');
-					matchCount++;
-				} else {
-					// IT IS EXTRA... maybe.
-					// Refinement: Only mark LEAF nodes as Extra to avoid coloring the whole <body> red.
-					const hasBlockChildren = Array.from(el.children).some(child => {
-						const display = window.getComputedStyle(child).display;
-						return display.includes('block') || display.includes('flex') || display.includes('grid') || display.includes('table');
-					});
-
-					if (!hasBlockChildren) {
-						// It's a terminal block. If it didn't match sourceSet, it's Extra.
-						// If a child is .wcag-diff-found, don't mark parent Extra?
-						if (!el.querySelector('.wcag-diff-found')) {
-							el.classList.add('wcag-diff-extra');
-						}
+				rawLinesOnPage.forEach(pLine => {
+					const normPLine = normalize(pLine);
+					if (sourceSet.has(normPLine)) {
+						foundSet.add(normPLine);
+						elementHasMatch = true;
 					}
+				});
+
+				// Also check the WHOLE text normalized (for cases where user input is a multi-line block)
+				const normWhole = normalize(text);
+				if (sourceSet.has(normWhole)) {
+					foundSet.add(normWhole);
+					elementHasMatch = true;
+				}
+
+				if (elementHasMatch) {
+					el.classList.add('wcag-diff-found');
 				}
 			});
 
-			console.log(`✅ Visual Diff Applied: ${matchCount} matches found.`);
+			// 5. Analysis Phase 2: Identify Extras (Top-Down)
+			// Only mark elements that:
+			// 1. Are not already marked as found
+			// 2. Don't have any 'found' descendants (fixes the nested extra bug)
+			// 3. Don't have any 'found' ancestors (avoid coloring the whole page red)
+			document.querySelectorAll(contentSelectors).forEach(el => {
+				if (el.offsetParent === null || el.closest('.wcag-overlay')) return;
+				if (['SCRIPT', 'STYLE', 'NOSCRIPT', 'SVG', 'IMG', 'IFRAME'].includes(el.tagName)) return;
+				if (el.classList.contains('wcag-diff-found')) return;
+				
+				const normText = normalize(el.innerText || el.textContent);
+				if (normText.length < 3) return;
+
+				// Skip if any child is a match
+				if (el.querySelector('.wcag-diff-found')) return;
+				
+				// Skip if any parent is a match
+				if (el.closest('.wcag-diff-found')) return;
+
+				// Skip if it's a large container
+				const display = window.getComputedStyle(el).display;
+				const isBlock = display.includes('block') || display.includes('flex') || display.includes('grid');
+				const hasTextChildrenOnly = Array.from(el.childNodes).every(n => n.nodeType === 3 || !(['DIV','P','H1','H2','H3','H4','LI','SECTION','MAIN'].includes(n.tagName)));
+
+				if (!isBlock || hasTextChildrenOnly) {
+					el.classList.add('wcag-diff-extra');
+				}
+			});
+
+			// 6. Final Stats
+			const missingLines = sourceLines.filter(l => !foundSet.has(normalize(l)));
+
+			console.log(`✅ Analysis Complete. Matches: ${foundSet.size}, Total Unique Source: ${sourceSet.size}`);
+			
+			return {
+				success: true,
+				matchCount: foundSet.size,
+				totalLines: sourceSet.size,
+				missingLines: missingLines
+			};
 		}
 
 		// End of content script (SafeGuard)
+		// Auto-check for pending tasks on load (Persistence Flow)
+		(async function checkPending() {
+			try {
+				const data = await new Promise(resolve => chrome.storage.local.get(['pendingContentCheck', 'sourceLines'], resolve));
+				if (data && data.pendingContentCheck && data.sourceLines) {
+					console.log('🚀 Resuming pending content check post-reload...');
+					// Small buffer to let the page settle
+					await new Promise(r => setTimeout(r, 1000));
+					const results = await handleHighlightContentDiff({ sourceLines: data.sourceLines });
+					chrome.runtime.sendMessage({ action: 'contentCheckResults', results });
+					chrome.storage.local.remove(['pendingContentCheck', 'sourceLines']);
+				}
+			} catch (e) {
+				console.error('Pending check failed:', e);
+			}
+		})();
+
 	} catch (e) {
 		console.error('CRITICAL CONTENT SCRIPT CRASH:', e);
 	}

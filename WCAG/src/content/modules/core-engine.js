@@ -51,7 +51,7 @@ export class CoreEngine {
         this.abortController = new AbortController();
     }
 
-    async runAudit(root = document.body) {
+    async runAudit(root = document.documentElement) {
         if (this.isProcessing) this.cancel();
         
         this.isProcessing = true;

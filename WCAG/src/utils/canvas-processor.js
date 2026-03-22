@@ -2,6 +2,7 @@
 const CanvasProcessor = {
     canvas: null,
     ctx: null,
+    failedImages: new Set(),
 
     /**
      * Split gradient string by comma, but respect parentheses in rgb/rgba
@@ -201,8 +202,18 @@ const CanvasProcessor = {
             if (!match) { resolve(null); return; }
 
             const url = match[1];
+            if (this.failedImages.has(url)) { resolve(null); return; }
+
             const img = new Image();
             img.crossOrigin = "Anonymous";
+            let resolved = false;
+
+            const safeResolve = (val) => {
+                if (!resolved) {
+                    resolved = true;
+                    resolve(val);
+                }
+            };
 
             img.onload = () => {
                 try {
@@ -233,21 +244,22 @@ const CanvasProcessor = {
                     // Fill remaining if needed
                     while (samples.length < numPoints) samples.push(samples[0]);
 
-                    resolve(samples.slice(0, numPoints));
+                    safeResolve(samples.slice(0, numPoints));
                 } catch (e) {
-                    console.warn('CORS or Canvas error sampling image:', e);
-                    resolve(null);
+                    console.warn('🎨 Canvas error during sampling:', e);
+                    safeResolve(null);
                 }
             };
 
             img.onerror = () => {
-                console.warn('Failed to load background image:', url);
-                resolve(null);
+                console.log('🎨 Skip background image (load failed):', url);
+                this.failedImages.add(url);
+                safeResolve(null);
             };
 
             img.src = url;
             // Timeout to prevent hanging
-            setTimeout(() => resolve(null), 2000);
+            setTimeout(() => safeResolve(null), 1500);
         });
     },
 

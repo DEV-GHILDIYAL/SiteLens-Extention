@@ -1,682 +1,569 @@
-/**
- * Self Audit Manager - Phase 3: Premium Grid UI & Deep Fixes
- */
 class SelfAuditManager {
     constructor() {
         this.queue = [];
         this.visited = new Set();
         this.isRunning = false;
-        this.referenceContent = '';
         this.fullReport = [];
-        this.maxPages = 50;
-        this.cardMap = new Map(); // Store card elements by URL
-        this.processedTitles = new Set(); // Store titles to deduplicate
+        this.targetConfigs = []; // [{ url, fileText, fileName, rowElement }]
+        this.currentConfig = {};
+        this.cardMap = new Map();
 
+        // UI Bindings
+        this.bindElements();
+        this.initialize();
+    }
 
-        // UI Elements
+    bindElements() {
         this.startBtn = document.getElementById('startSelfAuditBtn');
         this.stopBtn = document.getElementById('stopSelfAuditBtn');
         this.progressArea = document.getElementById('auditProgressArea');
         this.progressBar = document.getElementById('auditProgressBar');
         this.queueCountDisplay = document.getElementById('auditQueueCount');
-        this.logArea = document.getElementById('auditResultsLog'); // The Grid Container
+        this.statusBox = document.getElementById('auditStatusBox');
+        this.resultsLog = document.getElementById('auditResultsLog');
+        this.summaryPanel = document.getElementById('auditSummaryPanel');
+        
+        this.addTargetBtn = document.getElementById('addTargetBtn');
+        this.targetsList = document.getElementById('auditTargetsList');
 
-        this.fileInput = document.getElementById('auditContentFile');
-        this.urlInput = document.getElementById('auditStartUrl');
-        this.ignoreInput = document.getElementById('auditIgnorePatterns');
-
-        // Detail View Elements
         this.dashboardView = document.getElementById('auditDashboard');
         this.detailView = document.getElementById('auditDetailView');
         this.detailContent = document.getElementById('auditDetailContent');
-        this.detailBackBtn = document.getElementById('auditDetailBackBtn');
         this.detailTitle = document.getElementById('auditDetailTitle');
         this.detailLink = document.getElementById('auditDetailLink');
-
-        this.ensureStatusBox();
-        this.statusBox = document.getElementById('auditStatusBox');
-
-        this.initialize();
-    }
-
-    ensureStatusBox() {
-        if (!document.getElementById('auditStatusBox') && this.progressArea) {
-            const box = document.createElement('div');
-            box.id = 'auditStatusBox';
-            box.className = 'audit-status-box';
-            this.progressArea.insertBefore(box, this.progressArea.firstChild);
-        }
+        this.detailBackBtn = document.getElementById('auditDetailBackBtn');
     }
 
     initialize() {
-        if (this.startBtn) this.startBtn.addEventListener('click', () => this.startAudit());
-        if (this.stopBtn) this.stopBtn.addEventListener('click', () => this.stopAudit());
-
-        if (this.fileInput) {
-            this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+        if (this.startBtn) this.startBtn.onclick = () => this.startAudit();
+        if (this.stopBtn) this.stopBtn.onclick = () => this.stopAudit();
+        if (this.detailBackBtn) this.detailBackBtn.onclick = () => this.closeDetailView();
+        
+        if (this.addTargetBtn) {
+            this.addTargetBtn.onclick = () => this.addTargetRow();
         }
 
-        if (this.detailBackBtn) {
-            this.detailBackBtn.addEventListener('click', () => this.closeDetailView());
+        // Add first row by default if empty
+        if (this.targetsList && this.targetsList.children.length === 0) {
+            this.addTargetRow();
         }
     }
 
-    async handleFileSelect(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        document.getElementById('auditFileName').textContent = file.name;
+    resetUI() {
+        if (this.dashboardView) this.dashboardView.classList.remove('hidden');
+        if (this.detailView) this.detailView.classList.add('hidden');
+        if (this.progressArea) this.progressArea.classList.add('hidden');
+        if (this.startBtn) this.startBtn.disabled = false;
+        this.isRunning = false;
+    }
 
-        if (file.name.endsWith('.docx')) {
-            if (window.mammoth) {
-                const arrayBuffer = await readFileAsArrayBuffer(file);
-                const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
-                this.referenceContent = result.value.toLowerCase();
-            } else {
-                alert('Mammoth library not ready.');
-            }
-        } else {
-            const text = await readFileAsText(file);
-            this.referenceContent = text.toLowerCase();
+    addTargetRow() {
+        if (!this.targetsList) {
+            console.error('❌ addTargetRow: targetsList element not found');
+            return;
+        }
+        
+        const row = document.createElement('div');
+        row.className = 'audit-target-row';
+        row.style.cssText = 'display: flex; align-items: center; gap: 8px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 10px; transition: all 0.2s;';
+        row.innerHTML = `
+            <input type="text" class="audit-row-url" placeholder="URL" 
+                style="flex: 1; min-width: 0; padding: 6px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 11px;">
+            
+            <label class="file-upload-btn btn-sm" style="margin: 0; padding: 4px 6px; font-size: 10px; cursor: pointer; white-space: nowrap; flex-shrink: 0;">
+                <span class="btn-icon">📂</span>
+                <input type="file" class="audit-row-file hidden-file-input" accept=".txt,.docx" style="display: none;">
+            </label>
+            
+            <span class="audit-row-filename" style="font-size: 10px; color: var(--text-muted); max-width: 60px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0;">No doc</span>
+            
+            <button class="remove-row-btn" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 16px; padding: 0 4px; flex-shrink: 0;">×</button>
+        `;
+        this.targetsList.appendChild(row);
+
+        // Scroll to bottom
+        this.targetsList.scrollTop = this.targetsList.scrollHeight;
+
+        this.bindRowEvents(row);
+    }
+
+    bindRowEvents(row) {
+        const fileInput = row.querySelector('.audit-row-file');
+        const fileNameDisplay = row.querySelector('.audit-row-filename');
+        const removeBtn = row.querySelector('.remove-row-btn');
+
+        if (fileInput) {
+            fileInput.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                fileNameDisplay.textContent = 'Processing...';
+                let text = '';
+                try {
+                    if (file.name.endsWith('.docx')) {
+                        const arrayBuffer = await file.arrayBuffer();
+                        const result = await window.mammoth.extractRawText({ arrayBuffer });
+                        text = result.value;
+                    } else {
+                        text = await file.text();
+                    }
+                    fileNameDisplay.textContent = file.name;
+                    row.dataset.fileText = text;
+                    row.dataset.fileName = file.name;
+                } catch (err) {
+                    fileNameDisplay.textContent = 'Error loading file';
+                    console.error(err);
+                }
+            };
+        }
+
+        if (removeBtn) {
+            removeBtn.onclick = () => row.remove();
         }
     }
 
     async startAudit() {
-        const startUrl = this.urlInput.value.trim();
-        if (!startUrl || !startUrl.startsWith('http')) {
-            alert('Please enter a valid HTTP/HTTPS URL');
+        const rows = Array.from(this.targetsList.querySelectorAll('.audit-target-row'));
+        const targets = rows.map(row => ({
+            url: row.querySelector('.audit-row-url').value.trim(),
+            fileText: row.dataset.fileText || '',
+            fileName: row.dataset.fileName || ''
+        })).filter(t => t.url);
+
+        if (targets.length === 0) {
+            this.logStatus('Error: Please enter at least one URL.');
             return;
         }
 
         this.isRunning = true;
-        this.queue = [startUrl];
+        this.queue = targets.map(t => t.url);
+        this.referenceDocs = new Map();
+        
+        // Load reference docs from rows
+        targets.forEach(t => {
+            if (t.fileText) {
+                const slug = ContentComparisonEngine.getSlug(t.url);
+                this.referenceDocs.set(slug, { name: t.fileName, text: t.fileText });
+            }
+        });
+
         this.visited = new Set();
         this.fullReport = [];
         this.cardMap.clear();
-        this.logArea.innerHTML = '';
-        this.progressArea.style.display = 'block';
-        if (this.statusBox) this.statusBox.innerHTML = '';
+        this.resultsLog.innerHTML = '';
+        this.progressArea.classList.remove('hidden');
         this.startBtn.disabled = true;
 
-        this.logStatus('🚀 Starting Premium Audit...');
-        await this.wait(1000);
+        this.currentConfig = {
+            maxPages: targets.length, // Audit all provided targets
+            delay: 1000
+        };
 
-        // Add start URL title tracking placeholder
-        this.processedTitles.clear();
-
-        this.auditLoop();
+        this.logStatus(`Audit Engine Started with ${targets.length} targets...`);
+        await this.auditLoop();
     }
 
     stopAudit() {
         this.isRunning = false;
-        this.logStatus('🛑 Stopping audit...');
-        // Finalize will be called by loop exit
+        this.logStatus('Audit Canceled by User.');
+        this.startBtn.disabled = false;
     }
 
     async auditLoop() {
-        while (this.isRunning && this.queue.length > 0 && this.visited.size < this.maxPages) {
+        while (this.isRunning && this.queue.length > 0 && this.visited.size < this.currentConfig.maxPages) {
             const url = this.queue.shift();
-
-            // Deduplication (Stricter)
-            const normalizedUrl = new URL(url).href.split('#')[0].replace(/\/$/, "").toLowerCase();
-            const isVisited = [...this.visited].some(v => {
-                const vNorm = new URL(v).href.split('#')[0].replace(/\/$/, "").toLowerCase();
-                return vNorm === normalizedUrl;
-            });
-
-            if (isVisited) {
-                continue;
-            }
-            this.visited.add(url);
-
-            // Create Pending Card
+            const normalized = this.normalizeUrl(url);
+            
+            if (this.visited.has(normalized)) continue;
+            this.visited.add(normalized);
+            
+            this.updateProgressBar();
             this.createPendingCard(url);
 
-            // --- STEP 1: NAVIGATION ---
-            this.logStatus(`🌐 Navigating to: ${url}`);
-            this.updateProgress();
-
             try {
-                await this.navigateTo(url);
-                this.logStatus('⏳ Waiting for network idle...');
-                await this.wait(2000);
-
-                // --- STEP 2: HUMAN INTERACTION & CRAWL ---
-                this.logStatus('🤖 AI Agent: Analyzing structure...');
-
-                // Get Page Title (Fallback)
-                const pageMeta = await this.getPageMeta();
-                let pageTitle = pageMeta.title || new URL(url).pathname;
-
-                const newLinks = await this.crawlLinks();
-                this.logStatus(`🔗 Discovery: Found ${newLinks.length} new links.`);
-
-                this.addNewLinks(newLinks, url);
-                await this.wait(1000);
-
-                // --- STEP 3: ANALYSIS ---
-                this.logStatus('🧠 Evaluating content & accessibility...');
-                await this.scrollPage();
-
-                // Silent analysis
-                const result = await this.analyzeCurrentPage();
-
-                // --- STEP 4: REPORTING ---
-                // Prioritize SEO Analyzer Title if available
-                if (result.seo?.summary?.title?.value) {
-                    pageTitle = result.seo.summary.title.value;
-                }
-
-                // --- TITLE DEDUPLICATION CHECK ---
-                // If we have seen this title before, and it's not a generic title, mark as duplicate
-                if (pageTitle && pageTitle.length > 2 && this.processedTitles.has(pageTitle)) {
-                    this.logStatus(`⚠️ Duplicate content detected: "${pageTitle}". Skipping.`);
-                    this.updateCardWithDuplicate(url, pageTitle);
-                    this.removeCard(url);
-                    continue;
-                }
-                this.processedTitles.add(pageTitle);
-
-                result.pageTitle = pageTitle;
-                result.linkCount = newLinks.length;
-
+                this.logStatus(`Auditing: ${url}`);
+                const result = await this.auditPage(url);
+                this.fullReport.push(result);
                 this.updateCardWithResult(url, result);
-                this.fullReport.push({ url, result });
-
-                await this.wait(1000);
-
             } catch (err) {
-                console.error(`Error visiting ${url}:`, err);
-                this.logStatus(`❌ Error: ${err.message}`);
+                console.error('Page Audit error:', err);
                 this.updateCardWithError(url, err.message);
             }
         }
 
-        if (this.isRunning) {
-            this.logStatus('🏁 Audit Completed!');
-        }
         this.finalizeAudit();
     }
 
-    // --- CARD MANAGEMENT ---
+    async auditPage(url) {
+        // 1. Navigate
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        await chrome.tabs.update(tab.id, { url });
+        
+        // 2. Wait for load
+        await this.waitForLoad(tab.id);
+        
+        // 2.5 Ensure Content Script is injected (Crucial for file:// URLs)
+        await this.ensureContentScript(tab.id);
 
-    createPendingCard(url) {
-        const card = document.createElement('div');
-        card.className = 'audit-result-card';
+        // 3. Technical Audit
+        this.logStatus(`[${url}] Scanning document structure...`);
+        await new Promise(r => setTimeout(r, 600));
+        
+        const techResult = await this.sendMessage(tab.id, { action: 'analyzeAll' });
+        const techData = (techResult && techResult.success) ? techResult.data : {
+            contrast: { violations: [] },
+            images: { issues: [] },
+            buttons: { items: [], stats: { totalIssues: 0 } },
+            seo: { score: 100 },
+            fonts: { issues: [] },
+            content: { loremIpsum: { count: 0, items: [] } },
+            links: { issues: [] }
+        };
 
-        // Initial "Running" State
-        card.innerHTML = `
-            <div class="audit-card-badge running"></div>
-            <div class="audit-card-icon">⏳</div>
-            <div class="audit-card-title">${new URL(url).pathname}</div>
-            <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">Scanning...</div>
-        `;
+        // 4. Crawl Nav
+        const linksResult = await this.sendMessage(tab.id, { action: 'crawlNav' });
+        this.addLinksToQueue(linksResult.links || [], url);
 
-        // Append to Grid (logArea is now grid container)
-        this.logArea.appendChild(card);
-        this.cardMap.set(url, card);
+        // 5. Content Comparison
+        const pageTextResult = await this.sendMessage(tab.id, { action: 'getPageText' });
+        const pageText = pageTextResult.text || '';
+        const slug = ContentComparisonEngine.getSlug(url);
+        const refDoc = this.referenceDocs.get(slug) || this.referenceDocs.get('home') || null;
+        const comparison = ContentComparisonEngine.compare(refDoc?.text || '', pageText);
+
+        // 6. AI Insights
+        const [updatedTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        const aiInsights = await AIAuditService.analyze({
+            url,
+            title: updatedTab?.title || 'Page',
+            technical: techData,
+            contentComparison: comparison
+        });
+
+        // Calculate score
+        const score = this.calculateScore(techData, comparison);
+
+        return {
+            url,
+            title: updatedTab?.title || 'Page',
+            score,
+            technical: techData,
+            comparison,
+            aiInsights
+        };
     }
 
-    updateCardWithResult(url, data) {
-        const card = this.cardMap.get(url);
-        if (!card) return;
-
-        const contrastIssues = data.contrast?.summary?.issues || [];
-        const buttonIssues = data.buttons?.summary?.issues || [];
-        // FIX: H1 count comes from fonts analysis, NOT seo
-        const h1Count = data.fonts?.h1?.count || 0;
-        const loremFound = data.lorem?.loremIpsum?.found;
-
-        const totalIssues = contrastIssues.length + buttonIssues.length + (loremFound ? 1 : 0) + (h1Count !== 1 ? 1 : 0);
-        const isPass = totalIssues === 0;
-
-        let displayTitle = data.pageTitle && data.pageTitle.length < 50 ? data.pageTitle : new URL(url).pathname;
-        if (displayTitle === '/') displayTitle = 'Home';
-
-        card.innerHTML = `
-            <div class="audit-card-badge ${isPass ? 'pass' : 'fail'}"></div>
-            <div class="audit-card-icon">${isPass ? '✨' : '⚠️'}</div>
-            <div class="audit-card-title">${displayTitle}</div>
-            <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">${data.linkCount || 0} Links</div>
-        `;
-
-        // Store data for click handler (handler attached in finalize)
-        card.dataset.resultData = JSON.stringify(data);
-        card.dataset.resultUrl = url;
-    }
-
-    updateCardWithError(url, errorMsg) {
-        const card = this.cardMap.get(url);
-        if (!card) return;
-
-        card.innerHTML = `
-            <div class="audit-card-badge fail"></div>
-            <div class="audit-card-icon">❌</div>
-            <div class="audit-card-title">Failed</div>
-            <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">Error</div>
-        `;
-
-        // Store minimal error data
-        card.dataset.resultData = JSON.stringify({ error: errorMsg, pageTitle: 'Analysis Failed' });
-        card.dataset.resultUrl = url;
-    }
-
-    updateCardWithDuplicate(url, title) {
-        const card = this.cardMap.get(url);
-        if (!card) return;
-        card.innerHTML = `
-            <div class="audit-card-badge warning"></div>
-            <div class="audit-card-icon">📁</div>
-            <div class="audit-card-title">Duplicate</div>
-            <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">${title}</div>
-        `;
-    }
-
-    removeCard(url) {
-        const card = this.cardMap.get(url);
-        if (card) {
-            card.remove();
-            this.cardMap.delete(url);
-        }
-    }
-
-    finalizeAudit() {
-        this.isRunning = false;
-        this.startBtn.disabled = false;
-
-        // Enable Interactions
-        this.logStatus('🔓 Audit Complete. Cards are now clickable.');
-
-        const allCards = this.logArea.querySelectorAll('.audit-result-card');
-        allCards.forEach(card => {
-            card.classList.add('clickable');
-            card.addEventListener('click', () => {
-                if (!card.classList.contains('clickable')) return;
-
-                try {
-                    const data = JSON.parse(card.dataset.resultData);
-                    const url = card.dataset.resultUrl;
-                    this.openDetailView(url, data);
-                } catch (e) { console.error('Error parsing card data', e); }
-            });
+    addLinksToQueue(links, currentUrl) {
+        const origin = new URL(currentUrl).origin;
+        links.forEach(link => {
+            try {
+                const fullUrl = new URL(link, currentUrl).href;
+                if (fullUrl.startsWith(origin) && !this.visited.has(this.normalizeUrl(fullUrl))) {
+                    if (!this.queue.includes(fullUrl)) {
+                        this.queue.push(fullUrl);
+                    }
+                }
+            } catch (e) {}
         });
     }
 
-    // --- NAVIGATION & LOGIC ---
+    normalizeUrl(url) {
+        try {
+            const u = new URL(url);
+            return u.origin + u.pathname.replace(/\/$/, '');
+        } catch (e) { return url; }
+    }
 
-    async navigateTo(url) {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        await chrome.tabs.update(tab.id, { url: url });
+    waitForLoad(tabId) {
         return new Promise(resolve => {
-            const listener = (tabId, info) => {
-                if (tabId === tab.id && info.status === 'complete') {
+            const listener = (tid, change) => {
+                if (tid === tabId && change.status === 'complete') {
                     chrome.tabs.onUpdated.removeListener(listener);
-                    setTimeout(resolve, 1000);
+                    // Additional stabilization wait
+                    setTimeout(resolve, 2000);
                 }
             };
             chrome.tabs.onUpdated.addListener(listener);
         });
     }
 
-    async getPageMeta() {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        return new Promise(resolve => {
-            chrome.scripting.executeScript({
-                target: { tabId: tab.id },
-                func: () => document.title
-            }, (results) => {
-                resolve({ title: results?.[0]?.result || '' });
-            });
-        });
-    }
+    async ensureContentScript(tabId) {
+        try {
+            const ping = await this.sendMessage(tabId, { action: 'ping' });
+            if (ping.success) return; // Already injected
+        } catch (e) {
+            // Not injected, proceed to executeScript
+        }
 
-    async scrollPage() {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            func: async () => {
-                const totalHeight = document.body.scrollHeight;
-                window.scrollTo({ top: totalHeight * 0.3, behavior: 'smooth' });
-                await new Promise(r => setTimeout(r, 500));
-                window.scrollTo({ top: totalHeight * 0.6, behavior: 'smooth' });
-                await new Promise(r => setTimeout(r, 500));
-                window.scrollTo({ top: 0, behavior: 'auto' });
+        this.logStatus('Injecting content engine...');
+        const scripts = [
+            'src/utils/color-utils.js',
+            'src/utils/wcag-calculator.js',
+            'src/utils/dom-traverser.js',
+            'src/utils/canvas-processor.js',
+            'src/utils/text-detector.js',
+            'src/utils/background-sampler.js',
+            'src/utils/contrast-analyzer.js',
+            'src/utils/font-analyzer.js',
+            'src/utils/button-analyzer.js',
+            'src/utils/image-analyzer.js',
+            'src/utils/seo-analyzer.js',
+            'src/utils/color-analyzer.js',
+            'src/utils/content-analyzer.js',
+            'src/utils/link-analyzer.js',
+            'src/content/overlay.js',
+            'src/content/content.js'
+        ];
+
+        try {
+            await chrome.scripting.executeScript({
+                target: { tabId },
+                files: scripts
+            });
+        } catch (scriptErr) {
+            console.error('Injection failed:', scriptErr);
+            if (scriptErr.message.includes('must request permission')) {
+                throw new Error('Permission Denied. Please RELOAD the extension in chrome://extensions and ensure "Allow access to file URLs" is ON.');
             }
-        });
+            throw scriptErr;
+        }
+        
+        // Brief pause for initialization
+        await new Promise(r => setTimeout(r, 300));
     }
 
-    async analyzeCurrentPage() {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    sendMessage(tabId, message) {
         return new Promise(resolve => {
-            chrome.tabs.sendMessage(tab.id, { action: 'analyzeAll' }, (response) => {
-                if (chrome.runtime.lastError) {
-                    resolve({ error: chrome.runtime.lastError.message });
-                    return;
-                }
-                resolve(response.data || {});
+            chrome.tabs.sendMessage(tabId, message, res => {
+                resolve(res || { success: false });
             });
         });
     }
 
-    async crawlLinks() {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        return new Promise(resolve => {
-            chrome.tabs.sendMessage(tab.id, { action: 'crawlNav' }, (response) => {
-                resolve(response && response.links ? response.links : []);
-            });
-        });
+    calculateScore(tech, comp) {
+        if (!tech) return 0;
+        let score = 100;
+        
+        // Technical Weights
+        if (tech.contrast?.violations?.length > 0) score -= 15;
+        if (tech.images?.issues?.length > 0) score -= 10;
+        if (tech.buttons?.stats?.totalIssues > 0) score -= 10;
+        if (tech.fonts?.issues?.length > 0) score -= 5;
+        if (tech.content?.loremIpsum?.count > 0) score -= 15;
+        if (tech.seo?.score < 80) score -= 10;
+        
+        // Content Gap Weights
+        if (comp && comp.matchPercentage < 90) score -= (90 - comp.matchPercentage) / 2;
+        
+        return Math.max(0, Math.round(score));
     }
 
-    addNewLinks(links, currentUrl) {
-        const base = new URL(currentUrl).origin;
-        const ignoreText = this.ignoreInput ? this.ignoreInput.value.toLowerCase() : '';
-        const ignorePatterns = ignoreText.split('\n').map(s => s.trim()).filter(s => s);
-
-        links.forEach(link => {
-            try {
-                if (link.startsWith(base)) {
-                    const isIgnored = ignorePatterns.some(pattern => link.toLowerCase().includes(pattern));
-                    if (isIgnored) return;
-
-                    const cleanLink = link.split('#')[0].split('?')[0];
-                    if (!this.visited.has(cleanLink) && !this.queue.includes(cleanLink)) {
-                        this.queue.push(cleanLink);
-                    }
-                }
-            } catch (e) { }
-        });
-    }
-
+    // UI Renderers
     logStatus(msg) {
-        if (!this.statusBox) return;
-        const prev = this.statusBox.querySelector('.active');
-        if (prev) prev.classList.remove('active');
-
-        const line = document.createElement('div');
-        line.className = 'audit-status-line active';
-        const time = new Date().toLocaleTimeString().split(' ')[0];
-        line.textContent = `[${time}] ${msg}`;
-
-        this.statusBox.appendChild(line);
-        this.statusBox.scrollTop = this.statusBox.scrollHeight;
+        if (this.statusBox) {
+            const div = document.createElement('div');
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            this.statusBox.prepend(div);
+        }
     }
 
-    updateProgress() {
-        this.queueCountDisplay.textContent = `${this.queue.length} in queue`;
-        const percentage = Math.min(100, (this.visited.size / this.maxPages) * 100);
-        this.progressBar.style.width = percentage + '%';
+    updateProgressBar() {
+        const progress = (this.visited.size / this.currentConfig.maxPages) * 100;
+        if (this.progressBar) this.progressBar.style.width = `${progress}%`;
+        if (this.queueCountDisplay) this.queueCountDisplay.textContent = `${this.visited.size}/${this.currentConfig.maxPages}`;
     }
 
-    wait(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
+    createPendingCard(url) {
+        const card = document.createElement('div');
+        card.className = 'audit-result-card scanning';
+        const displayPath = new URL(url).pathname === '/' ? 'Home' : new URL(url).pathname.split('/').pop() || 'Page';
+        
+        card.innerHTML = `
+            <div class="audit-card-badge running"></div>
+            <div class="audit-card-icon">⏳</div>
+            <div class="audit-card-title">${displayPath}</div>
+            <div class="audit-card-score">--</div>
+            <div class="audit-card-meta">Analyzing...</div>
+        `;
+        this.resultsLog.prepend(card);
+        this.cardMap.set(url, card);
     }
 
-    // --- DETAIL VIEW & INTERACTION ---
+    updateCardWithResult(url, result) {
+        const card = this.cardMap.get(url);
+        if (!card) return;
 
-    async highlightElement(selector) {
-        if (!selector) return;
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-        // Ensure we are on the right page? 
-        // Note: The user clicks this in detail view. 
-        // Assuming they are still on that page or will navigate. 
-        // Ideally we should check if current tab URL matches, but for now we just try.
-
-        chrome.tabs.sendMessage(tab.id, {
-            action: 'highlightButton', // Re-using existing highlight logic which scrolls!
-            selector: selector
-        });
-    }
-
-    openDetailView(url, data) {
-        this.dashboardView.style.display = 'none';
-        this.detailView.style.display = 'block';
-
-        const title = data.pageTitle || new URL(url).pathname;
-        this.detailTitle.textContent = title;
-        this.detailTitle.title = title;
-        this.detailLink.href = url;
-
-        // Render Report
-        const contrastIssues = data.contrast?.summary?.issues || [];
-        const fontSummary = data.fonts?.summary || {};
-        const seoSummary = data.seo?.summary || {};
-        const buttonIssues = data.buttons?.summary?.issues || [];
-        const loremInstances = data.lorem?.loremIpsum?.instances || [];
-        const linkData = data.links?.links || [];
-
-        // Check SEO Health
-        const seoCritical = seoSummary.stats?.critical || 0;
-        const seoTitle = seoSummary.title?.value || 'Missing';
-        const seoDesc = seoSummary.description?.value || 'Missing';
-
-        let html = '';
-
-        // -- HEADER STATUS --
-        const totalErrors = contrastIssues.length + buttonIssues.length + loremInstances.length + seoCritical;
-        const statusColor = totalErrors === 0 ? 'var(--success)' : totalErrors < 5 ? 'var(--warning)' : 'var(--danger)';
-        const statusBg = totalErrors === 0 ? 'var(--success-bg)' : totalErrors < 5 ? 'var(--warning-bg)' : 'var(--danger-bg)';
-        const statusIcon = totalErrors === 0 ? '✨' : totalErrors < 5 ? '⚠️' : '❌';
-        const statusText = totalErrors === 0 ? 'Audit Passed' : `${totalErrors} Issues Found`;
-
-        html += `
-            <div style="background:${statusBg}; padding:20px; border-radius:12px; margin-bottom:24px; text-align:center; border:1px solid ${statusColor}40;">
-                <div style="font-size:32px; margin-bottom:8px;">${statusIcon}</div>
-                <div style="font-size:18px; font-weight:700; color:${statusColor}; margin-bottom:4px;">${statusText}</div>
-                <div style="font-size:12px; color:var(--text-muted); opacity:0.8;">${url}</div>
-            </div>
+        card.classList.remove('scanning');
+        card.onclick = () => this.openDetailView(result);
+        const statusClass = result.score >= 90 ? 'pass' : (result.score >= 70 ? 'warning' : 'fail');
+        
+        card.innerHTML = `
+            <div class="audit-card-badge ${statusClass}"></div>
+            <div class="audit-card-icon">📄</div>
+            <div class="audit-card-title">${result.title || 'Page'}</div>
+            <div class="audit-card-score">${result.score}</div>
+            <div class="audit-card-meta">${new URL(result.url).pathname}</div>
         `;
 
-        if (data.error) {
-            html += `<div style="color:var(--danger); padding:20px; text-align:center; background:var(--bg-surface); border-radius:8px;">${data.error}</div>`;
-            this.detailContent.innerHTML = html;
-            return;
-        }
+        this.updateSummary();
+    }
 
-        // -- 1. SEO AUDIT --
-        html += `<div class="detail-section">
-            <h4 class="section-title">🔍 SEO & Meta</h4>
-            <div class="info-grid">
-                <div class="info-item ${!seoSummary.title ? 'error' : ''}">
-                    <label>Meta Title</label>
-                    <div class="value">${seoTitle}</div>
-                    ${seoSummary.title ? `<div class="sub-value">${seoSummary.title.length} chars</div>` : ''}
-                </div>
-                <div class="info-item ${!seoSummary.description ? 'error' : ''}">
-                    <label>Meta Description</label>
-                    <div class="value">${seoDesc}</div>
-                     ${seoSummary.description ? `<div class="sub-value">${seoSummary.description.length} chars</div>` : ''}
-                </div>
-                <div class="info-item">
-                    <label>Open Graph</label>
-                    <div class="value">
-                        <span class="badge ${seoSummary.ogTitle ? 'pass' : 'fail'}">OG:Title</span>
-                        <span class="badge ${seoSummary.ogDescription ? 'pass' : 'fail'}">OG:Desc</span>
+    updateSummary() {
+        if (!this.summaryPanel) return;
+        this.summaryPanel.classList.remove('hidden');
+        
+        const totalScore = this.fullReport.reduce((acc, r) => acc + r.score, 0);
+        const avgScore = Math.round(totalScore / this.fullReport.length);
+        const totalGaps = this.fullReport.reduce((acc, r) => acc + r.comparison.missingContent.length, 0);
+
+        const avgEl = document.getElementById('summaryAvgScore');
+        const gapsEl = document.getElementById('summaryTotalIssues');
+        
+        if (avgEl) avgEl.textContent = avgScore;
+        if (gapsEl) gapsEl.textContent = totalGaps;
+    }
+
+    updateCardWithError(url, error) {
+        const card = this.cardMap.get(url);
+        if (card) {
+            card.innerHTML = `<div class="audit-card-badge fail"></div><div class="audit-card-content"><div class="audit-card-title">Error</div><div class="audit-card-meta">${error}</div></div>`;
+        }
+    }
+
+    openDetailView(result) {
+        console.log('🤖 AI Audit: Opening Premium Detail View for', result?.url);
+        if (!result) return;
+        
+        try {
+            this.dashboardView.classList.add('hidden');
+            this.detailView.classList.remove('hidden');
+            this.detailTitle.textContent = result.title || 'Page Report';
+            this.detailLink.href = result.url || '#';
+            
+            const tech = result.technical || {};
+            const comp = result.comparison || { matchPercentage: 0, missingContent: [] };
+            const insights = result.aiInsights || { criticalIssues: [], suggestions: [] };
+            
+            const getHealthStatus = (score) => {
+                if (score >= 90) return { text: "Health is Excellent! ✨", color: "#10b981" };
+                if (score >= 70) return { text: "Health is Good! 👍", color: "var(--primary)" };
+                if (score >= 50) return { text: "Health is Fair ⚠️", color: "var(--warning)" };
+                return { text: "Health is Poor 🚩", color: "var(--danger)" };
+            };
+            const health = getHealthStatus(result.score || 0);
+            
+            const getStatus = (val, type) => {
+                if (type === 'seo' || type === 'match') return val >= 90 ? 'good' : (val >= 70 ? 'warning' : 'critical');
+                return val === 0 ? 'good' : (val > 10 ? 'critical' : 'warning');
+            };
+
+            this.detailContent.innerHTML = `
+                <div class="audit-report-container">
+                    <!-- 1. Health Header (Compacted) -->
+                    <div class="audit-health-header">
+                        <div class="health-meter" style="border-color: ${health.color}44;">
+                            <div class="health-score-value" style="color: ${health.color};">${result.score || 0}%</div>
+                        </div>
+                        <div class="health-label" style="color: ${health.color}; font-size: 11px;">${health.text}</div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Analysis for: ${result.title || 'Untitled Page'}</div>
+                    </div>
+
+                    <!-- 2. Technical Metrics -->
+                    <div class="audit-metric-grid">
+                        <div class="metric-card ${getStatus(tech.contrast?.violations?.length || 0)}">
+                            <div class="metric-label">Contrast</div>
+                            <div class="metric-value">${tech.contrast?.violations?.length || 0} Issues</div>
+                            <div class="metric-status">
+                                <span>${tech.contrast?.violations?.length === 0 ? '✅ optimal' : '⚠️ accessibility fix'}</span>
+                            </div>
+                        </div>
+                        <div class="metric-card ${getStatus(tech.images?.issues?.length || 0)}">
+                            <div class="metric-label">Images</div>
+                            <div class="metric-value">${tech.images?.issues?.length || 0} Alt Issues</div>
+                            <div class="metric-status">
+                                <span>${tech.images?.issues?.length === 0 ? '✅ fully tagged' : '⚠️ descriptive alts needed'}</span>
+                            </div>
+                        </div>
+                        <div class="metric-card ${getStatus(tech.buttons?.stats?.totalIssues || 0)}">
+                            <div class="metric-label">Buttons</div>
+                            <div class="metric-value">${tech.buttons?.stats?.totalIssues || 0} UI Fixes</div>
+                            <div class="metric-status">
+                                <span>${tech.buttons?.stats?.totalIssues === 0 ? '✅ interactive' : '⚠️ labeling/links'}</span>
+                            </div>
+                        </div>
+                        <div class="metric-card ${getStatus(tech.content?.loremIpsum?.count || 0)}">
+                            <div class="metric-label">Placeholders</div>
+                            <div class="metric-value">${tech.content?.loremIpsum?.count || 0} Flagged</div>
+                            <div class="metric-status">
+                                <span>${tech.content?.loremIpsum?.count === 0 ? '✅ production' : '🚩 cleanup lorem'}</span>
+                            </div>
+                        </div>
+                        <div class="metric-card ${getStatus(tech.seo?.score || 100, 'seo')}">
+                            <div class="metric-label">SEO Performance</div>
+                            <div class="metric-value">${tech.seo?.score || 100}/100</div>
+                            <div class="metric-status">
+                                <span>${tech.seo?.score >= 90 ? '✅ highly optimized' : '⚠️ title/meta needs work'}</span>
+                            </div>
+                        </div>
+                        <div class="metric-card ${getStatus(tech.links?.issues?.length || 0)}">
+                            <div class="metric-label">Navigation</div>
+                            <div class="metric-value">${tech.links?.issues?.length || 0} Broken</div>
+                            <div class="metric-status">
+                                <span>${tech.links?.issues?.length === 0 ? '✅ clean paths' : '⚠️ verify links'}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Content Gaps -->
+                    <div class="gap-section">
+                        <div class="gap-header">
+                            <h4>📄 Content Comparison</h4>
+                            <span class="badge ${getStatus(comp.matchPercentage, 'match')}">${comp.matchPercentage}% match</span>
+                        </div>
+                        <div class="gap-list">
+                            ${comp.missingContent.length > 0 
+                                ? comp.missingContent.slice(0, 15).map(s => `
+                                    <div class="gap-item">
+                                        <span class="gap-bullet">!</span>
+                                        <span>Missing: ${s.substring(0, 50)}${s.length > 50 ? '...' : ''}</span>
+                                    </div>
+                                  `).join('')
+                                : '<div class="empty-hint">All reference content present in live page! ✅</div>'
+                            }
+                            ${comp.missingContent.length > 15 ? `<div style="padding: 10px; font-size: 10px; text-align: center; color: var(--text-muted);">+ ${comp.missingContent.length - 15} more differences detected</div>` : ''}
+                        </div>
+                    </div>
+
+                    <!-- 4. AI Insights -->
+                    <div class="ai-insights-panel">
+                        <div class="insight-group">
+                            <div class="insight-title" style="color: var(--warning);">⚡ Critical Optimization</div>
+                            ${(insights.criticalIssues || []).map(i => `<div class="insight-item">${i}</div>`).join('')}
+                        </div>
+                        <div class="insight-group">
+                            <div class="insight-title" style="color: var(--primary);">💡 UI Suggestions</div>
+                            ${(insights.suggestions || []).map(s => `<div class="insight-item">${s}</div>`).join('')}
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>`;
-
-        // -- 2. FONT & HIERARCHY --
-        const h1Count = fontSummary.h1?.count || 0;
-        const hierarchyIssues = fontSummary.issues || [];
-
-        html += `<div class="detail-section">
-            <h4 class="section-title">🔤 Typography & Structure</h4>
-            <div class="hierarchy-tree">
-                <div class="h-level h1-level ${h1Count === 1 ? 'good' : 'bad'}">
-                    <span class="tag">H1</span> 
-                    <span class="count">${h1Count} Found</span>
-                    ${h1Count !== 1 ? '<span class="warning-icon">⚠️</span>' : '✅'}
-                </div>
-                <div class="h-grid">
-                    <div class="h-stat"><span>H2</span> <strong>${fontSummary.h2?.count || 0}</strong></div>
-                    <div class="h-stat"><span>H3</span> <strong>${fontSummary.h3?.count || 0}</strong></div>
-                    <div class="h-stat"><span>H4</span> <strong>${fontSummary.h4?.count || 0}</strong></div>
-                    <div class="h-stat"><span>H5</span> <strong>${fontSummary.h5?.count || 0}</strong></div>
-                    <div class="h-stat"><span>H6</span> <strong>${fontSummary.h6?.count || 0}</strong></div>
-                    <div class="h-stat"><span>P</span> <strong>${fontSummary.paragraphs?.count || 0}</strong></div>
-                </div>
-            </div>
-            ${hierarchyIssues.length > 0 ? `
-                <div class="issue-list">
-                    ${hierarchyIssues.map(i => `<div class="issue-item warning">${i.message}</div>`).join('')}
-                </div>
-            ` : ''}
-        </div>`;
-
-        // -- 3. COLOR CONTRAST --
-        if (contrastIssues.length > 0) {
-            html += `<div class="detail-section">
-                <h4 class="section-title error-text">🎨 Color Contrast (${contrastIssues.length})</h4>
-                <div class="issue-list">
-                    ${contrastIssues.slice(0, 10).map(c => `
-                        <div class="issue-item fail">
-                            <div class="issue-header">
-                                <strong>${c.text.substring(0, 30)}${c.text.length > 30 ? '...' : ''}</strong>
-                                <span class="score-badge fail">${c.contrastRatio.toFixed(2)}</span>
-                            </div>
-                            <div class="issue-desc">Expected ${c.requiredRatio}:1</div>
-                        </div>
-                    `).join('')}
-                    ${contrastIssues.length > 10 ? `<div style="text-align:center; font-size:11px; padding:4px;">+ ${contrastIssues.length - 10} more issues</div>` : ''}
-                </div>
-            </div>`;
-        } else {
-            html += `<div class="detail-section"><h4 class="section-title success-text">🎨 Color Contrast</h4><div class="success-banner">No contrast issues found</div></div>`;
+            `;
+        } catch (err) {
+            console.error('❌ openDetailView failed:', err);
+            this.closeDetailView();
         }
-
-        // -- 4. BUTTONS & LINKS --
-        const brokenButtons = buttonIssues.filter(b => b.message.includes('text') || b.message.includes('name'));
-        const allButtons = data.buttons?.summary?.buttons || [];
-
-        html += `<div class="detail-section">
-            <h4 class="section-title">🖱️ Interactive Elements</h4>
-             <div class="info-grid half">
-                <div class="info-item">
-                    <label>Total Links</label>
-                    <div class="value">${data.linkCount || 0}</div>
-                </div>
-                 <div class="info-item">
-                    <label>Buttons Analyzed</label>
-                    <div class="value">${data.buttons?.summary?.totalButtons || 0}</div>
-                </div>
-            </div>
-            
-            ${brokenButtons.length > 0 ? `
-                <div class="issue-list" style="margin-top:12px;">
-                    <div style="font-size:11px; font-weight:700; color:var(--danger); margin-bottom:4px; text-transform:uppercase;">Issues Found</div>
-                    ${brokenButtons.map(b => `
-                        <div class="issue-item fail">
-                            <div class="issue-header"><strong>Wait found</strong></div>
-                            <div class="issue-desc">${b.message}</div>
-                        </div>
-                    `).join('')}
-                </div>
-            ` : ''}
-
-           ${allButtons.length > 0 ? `
-                <div class="button-list-container" style="margin-top:16px;">
-                    <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase; border-bottom:1px solid var(--border-color); padding-bottom:4px;">Button Details</div>
-                    <div style="display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto; padding-right:4px;">
-                        ${allButtons.map(btn => {
-            // Casing detection
-            let casing = 'Unknown';
-            if (btn.text) {
-                const t = btn.text.replace(/[^a-zA-Z]/g, '');
-                if (t === t.toUpperCase() && t.length > 1) casing = 'UPPERCASE';
-                else if (t === t.toLowerCase()) casing = 'lowercase';
-                else if (t.charAt(0) === t.charAt(0).toUpperCase() && t.slice(1) === t.slice(1).toLowerCase()) casing = 'Title Case';
-                else casing = 'Camel/Mixed';
-            }
-
-            return `
-                            <div style="background:var(--bg-acc-2); padding:8px; border-radius:6px; font-size:11px; border:1px solid var(--border-color);">
-                                <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
-                                    <strong style="color:var(--primary);">${btn.text}</strong>
-                                    <span style="font-size:9px; background:rgba(255,255,255,0.1); padding:1px 4px; border-radius:3px;">${casing}</span>
-                                </div>
-                                <div style="color:var(--text-muted); display:flex; gap:6px; align-items:center;">
-                                    <span>🔗 ${btn.destination}</span>
-                                </div>
-                            </div>
-                            `;
-        }).join('')}
-                     </div>
-                </div>
-            ` : ''}
-
-            ${brokenButtons.length === 0 && allButtons.length === 0 ? '<div class="success-banner" style="margin-top:8px;">No interactive issues found</div>' : ''}
-        </div>`;
-
-        // -- 5. LOREM IPSUM --
-        if (loremInstances.length > 0) {
-            html += `<div class="detail-section">
-                <h4 class="section-title error-text">📝 Placeholder Text Detected</h4>
-                 <div class="issue-list">
-                    ${loremInstances.map((l) => `
-                        <button class="lorem-issue-btn" data-selector="${l.path.replace(/"/g, '&quot;')}" 
-                            style="width:100%; text-align:left; cursor:pointer;" title="Click to highlight">
-                            <div class="issue-item fail clickable-issue">
-                                <div class="issue-header"><strong>Lorem Ipsum</strong></div>
-                                <div class="issue-desc">"${l.text.substring(0, 50)}..."</div>
-                                <div class="click-hint">Click to show</div>
-                            </div>
-                        </button>
-                    `).join('')}
-                </div>
-            </div>`;
-        }
-
-        this.detailContent.innerHTML = html;
-
-        // Bind Click Listeners for Lorem
-        const loremBtns = this.detailContent.querySelectorAll('.lorem-issue-btn');
-        loremBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const selector = btn.getAttribute('data-selector');
-                this.highlightElement(selector);
-            });
-        });
     }
 
     closeDetailView() {
-        this.detailView.style.display = 'none';
-        this.dashboardView.style.display = 'block';
+        this.detailView.classList.add('hidden');
+        this.dashboardView.classList.remove('hidden');
+    }
+
+    finalizeAudit() {
+        this.isRunning = false;
+        this.startBtn.disabled = false;
+        this.logStatus('AUDIT COMPLETE. View individual reports above.');
     }
 }
 
-function readFileAsArrayBuffer(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsArrayBuffer(file);
-    });
-}
-
-function readFileAsText(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsText(file);
-    });
-}
-
-// Initialize Robustly
-function initSelfAudit() {
-    console.log('🔄 Initializing SelfAuditManager...');
-    if (document.getElementById('startSelfAuditBtn')) {
-        window.selfAuditManager = new SelfAuditManager();
-        console.log('✅ SelfAuditManager initialized successfully.');
-    } else {
-        console.warn('⚠️ startSelfAuditBtn not found, retrying...');
-        setTimeout(initSelfAudit, 500);
-    }
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initSelfAudit);
-} else {
-    initSelfAudit();
-}
+// Global Export
+window.SelfAuditManager = SelfAuditManager;
