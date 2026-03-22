@@ -139,6 +139,13 @@
                         <h3 class="feature-card-title">AI Self-Audit</h3>
                         <p class="feature-card-desc">Crawl website and simulate human audit</p>
                     </div>
+
+                    <!-- Alt Text Generator (New) -->
+                    <div class="feature-card" data-feature="altGenerator">
+                        <div class="feature-card-icon">🏷️</div>
+                        <h3 class="feature-card-title">Alt Text Generator</h3>
+                        <p class="feature-card-desc">Generate SEO-friendly alt text labels</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -443,6 +450,42 @@
                     </div>
 
                     <div id="imageDownloadGrid" class="image-grid" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: ALT TEXT GENERATOR -->
+        <div class="tab-content" id="altGeneratorTab">
+            <div class="content-section">
+                <h2 class="page-title">🏷️ Alt Text Generator</h2>
+                <p class="helper-text">Create SEO-optimized alt text for your images</p>
+
+                <div class="input-group" style="margin-bottom: 20px;">
+                    <label style="margin-bottom: 8px; display: block;">Company Name</label>
+                    <input type="text" id="altCompanyInput" placeholder="e.g. RevIVe Hydration & Wellness" 
+                        style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-acc-1); color: var(--text-main); font-family: inherit;">
+                    
+                    <label style="margin-top: 15px; margin-bottom: 8px; display: block;">Page Name</label>
+                    <input type="text" id="altPageInput" placeholder="e.g. Home" 
+                        style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-acc-1); color: var(--text-main); font-family: inherit;">
+
+                    <label style="margin-top: 15px; margin-bottom: 8px; display: block;">Image Name</label>
+                    <input type="text" id="altImageInput" placeholder="e.g. Hormone Replacement Therapy" 
+                        style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-acc-1); color: var(--text-main); font-family: inherit;">
+                </div>
+
+                <div class="result-section" style="margin-top: 30px;">
+                    <h3 class="section-title">Generated Alt Text</h3>
+                    <div id="altOutputContainer" class="copy-box" style="cursor: pointer; position: relative;">
+                        <div id="altOutput" 
+                            style="width: 100%; padding: 18px; border-radius: 12px; border: 2px dashed var(--primary); background: rgba(99, 102, 241, 0.05); color: #818cf8; font-family: 'JetBrains Mono', 'Roboto Mono', monospace; font-size: 15px; font-weight: 700; cursor: pointer; text-align: center; word-break: break-all; min-height: 70px; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">
+                            Result will appear here...
+                        </div>
+                        <div class="copy-overlay" id="copyOverlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary); border-radius: 12px; align-items: center; justify-content: center; color: white; font-weight: 800; font-size: 18px; box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);">
+                            COPIED! ✨
+                        </div>
+                    </div>
+                    <p class="helper-text" style="text-align: center; margin-top: 12px; font-size: 12px; font-weight: 500; color: var(--text-dim);">Click the box to copy to clipboard</p>
                 </div>
             </div>
         </div>

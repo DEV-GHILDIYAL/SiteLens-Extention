@@ -27,13 +27,49 @@ const ImageAnalyzer = {
                 emptyAlt: issues.filter(i => i.type === 'empty-alt').length,
                 poorAltText: issues.filter(i => i.type === 'poor-alt').length
             },
-            allImages: Array.from(images).map(img => ({
-                src: img.src,
-                alt: img.alt || '',
-                width: img.naturalWidth,
-                height: img.naturalHeight
-            })).filter(img => img.src && !img.src.startsWith('data:')) // Filter out inline base64 if needed, or keep
+            allImages: this.extractAllImages()
         };
+    },
+
+    /**
+     * Extract ALL images on page (src and CSS backgrounds)
+     */
+    extractAllImages() {
+        const imageSet = new Set();
+        
+        // 1. Standard Tags
+        document.querySelectorAll('img').forEach(img => {
+            if (img.src && !img.src.startsWith('data:')) {
+                imageSet.add(img.src);
+            }
+        });
+
+        // 2. CSS Backgrounds
+        const allElements = document.querySelectorAll('*');
+        allElements.forEach(el => {
+            const style = window.getComputedStyle(el);
+            const bgImage = style.backgroundImage;
+            
+            if (bgImage && bgImage !== 'none' && bgImage.includes('url(')) {
+                const match = bgImage.match(/url\(['"]?(.*?)['"]?\)/);
+                if (match && match[1]) {
+                    let url = match[1];
+                    // Convert to absolute URL if necessary
+                    if (!url.startsWith('http') && !url.startsWith('data:')) {
+                        const absoluteUrl = new URL(url, window.location.href).href;
+                        imageSet.add(absoluteUrl);
+                    } else if (!url.startsWith('data:')) {
+                        imageSet.add(url);
+                    }
+                }
+            }
+        });
+
+        return Array.from(imageSet).map(src => ({
+            src: src,
+            width: 0, // Natural dimensions not easily available for BG images without loading
+            height: 0
+        }));
     },
 
     /**

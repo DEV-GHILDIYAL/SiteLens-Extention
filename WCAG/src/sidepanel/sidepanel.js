@@ -3061,6 +3061,75 @@ function initializeFeatures() {
   initializeThemeGenerator();
   initializeColorExtractor();
   initializeImageDownloader();
+  initializeAltGenerator();
+}
+
+function initializeAltGenerator() {
+  const companyInput = document.getElementById('altCompanyInput');
+  const pageInput = document.getElementById('altPageInput');
+  const imageInput = document.getElementById('altImageInput');
+  const output = document.getElementById('altOutput');
+  const container = document.getElementById('altOutputContainer');
+  const overlay = document.getElementById('copyOverlay');
+
+  if (!companyInput || !pageInput || !imageInput || !output || !container) return;
+
+  const updateOutput = () => {
+    const company = companyInput.value.trim();
+    const page = pageInput.value.trim();
+    const image = imageInput.value.trim();
+
+    if (!company && !page && !image) {
+      output.innerText = "Result will appear here...";
+      output.style.color = "var(--text-dim)";
+      return;
+    }
+
+    const parts = [company, page, image].filter(p => p.length > 0);
+    
+    let result = parts.join('-')
+      .toLowerCase()
+      .replace(/&/g, 'and')
+      .replace(/[^a-z0-9\s-]/g, '') // remove other special chars
+      .replace(/\s+/g, '-') // spaces to dashes
+      .replace(/-+/g, '-'); // collapse dashes
+
+    output.innerText = result;
+    output.style.color = "#818cf8"; // Bright indigo for visibility
+  };
+
+  [companyInput, pageInput, imageInput].forEach(el => {
+    el.addEventListener('input', updateOutput);
+  });
+
+  container.addEventListener('click', async () => {
+    const text = output.innerText.trim();
+    if (!text || text === "Result will appear here...") return;
+    
+    try {
+      await navigator.clipboard.writeText(text);
+      if (overlay) {
+        overlay.style.display = 'flex';
+        setTimeout(() => {
+          overlay.style.display = 'none';
+        }, 1200);
+      }
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      // Fallback
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      if (overlay) {
+        overlay.style.display = 'flex';
+        setTimeout(() => overlay.style.display = 'none', 1200);
+      }
+    }
+  });
 }
 
 function escapeHtml(text) {
