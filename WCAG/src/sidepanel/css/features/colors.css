@@ -1,0 +1,104 @@
+/* SiteLens - Color Extractor Feature Styles */
+
+#colorExtractorTab .color-chip-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 15px;
+    margin-bottom: 25px;
+}
+
+#colorExtractorTab .color-chip {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 48px;
+    position: relative;
+}
+
+#colorExtractorTab .color-chip:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    border-color: rgba(99, 102, 241, 0.5);
+}
+
+#colorExtractorTab .color-chip-swatch {
+    width: 44px;
+    height: 100%;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+}
+
+#colorExtractorTab .color-chip-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 12px;
+    overflow: hidden;
+}
+
+#colorExtractorTab .color-chip-hex {
+    font-family: "JetBrains Mono", "Roboto Mono", monospace;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+#colorExtractorTab .color-chip-action {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
+#colorExtractorTab .color-chip.copied {
+    background: rgba(16, 185, 129, 0.15) !important;
+    border-color: #10b981 !important;
+}
+
+#colorExtractorTab .color-section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+#colorExtractorTab .color-section-header h4 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+}
+
+#colorExtractorTab .color-count-pill {
+    background: rgba(255,255,255,0.05);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+#colorExtractorTab .mini-palette {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+#colorExtractorTab .palette-swatch-sm {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+}

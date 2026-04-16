@@ -1,0 +1,197 @@
+/* SiteLens - Shared Components & Lists */
+
+/* Results List Pattern */
+.result-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 20px;
+}
+
+.result-item {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.result-item:hover {
+    border-color: var(--primary);
+    background: var(--bg-card);
+}
+
+.result-item.suspicious { border-left: 4px solid var(--danger); }
+.result-item.generic-label { border-left: 4px solid var(--warning); }
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.result-label {
+    color: var(--text-main);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.2px;
+}
+
+.result-type {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+.result-url {
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    word-break: break-all;
+    line-height: 1.4;
+    opacity: 0.8;
+}
+
+.result-meta {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.meta-success { border-left: 3px solid var(--success); }
+.meta-danger { border-left: 3px solid var(--danger); }
+
+.meta-label {
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.meta-value {
+    color: var(--text-main);
+    font-weight: 500;
+}
+
+.result-msg {
+    font-weight: 500;
+    color: var(--text-main);
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.result-detail {
+    display: inline-block;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Filter Chips Pattern */
+.filter-section {
+    margin-bottom: 20px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+}
+
+.filter-chips {
+    display: flex;
+    gap: 8px;
+}
+
+.filter-chip {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-chip:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+}
+
+.filter-chip.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+/* Generic Tool Cards */
+.tool-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.tool-icon {
+    font-size: 20px;
+    background: var(--bg-hover);
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-main);
+}
+
+.tool-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 2px;
+}
+
+.tool-header p {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* --- Copy Utilities (Alt Gen etc) --- */
+.copy-box {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.copy-overlay {
+    backdrop-filter: blur(4px);
+    transition: all 0.2s ease;
+    z-index: 10;
+    display: flex;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+

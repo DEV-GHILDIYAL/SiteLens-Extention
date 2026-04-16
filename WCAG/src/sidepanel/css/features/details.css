@@ -1,0 +1,125 @@
+/* SiteLens - Audit Detail View Styles */
+
+#auditDetailView .detail-section {
+    background: var(--bg-surface);
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border-color);
+}
+
+#auditDetailView .section-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-main);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#auditDetailView .info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+
+#auditDetailView .info-grid.half {
+    grid-template-columns: 1fr 1fr;
+}
+
+#auditDetailView .info-item {
+    background: var(--bg-main);
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--border-color);
+}
+
+#auditDetailView .info-item.error {
+    border-left-color: var(--danger);
+    background: var(--danger-bg);
+}
+
+#auditDetailView .info-item label {
+    display: block;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+#auditDetailView .info-item .value {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-main);
+    word-break: break-word;
+}
+
+#auditDetailView .hierarchy-tree {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#auditDetailView .h-level {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    justify-content: space-between;
+}
+
+#auditDetailView .h-level.good { border-left: 3px solid var(--success); }
+#auditDetailView .h-level.bad { border-left: 3px solid var(--danger); }
+
+#auditDetailView .h-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 8px;
+}
+
+#auditDetailView .h-stat {
+    background: var(--bg-main);
+    padding: 6px;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 11px;
+    border: 1px solid var(--border-color);
+}
+
+#auditDetailView .issue-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+#auditDetailView .issue-item {
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    font-size: 12px;
+}
+
+#auditDetailView .issue-item.fail {
+    border-left: 3px solid var(--danger);
+}
+
+#auditDetailView .score-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 10px;
+}
+
+#auditDetailView .score-badge.fail {
+    background: var(--danger);
+    color: #fff;
+}

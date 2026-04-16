@@ -1,0 +1,260 @@
+/* SiteLens - AI Self-Audit Feature Styles */
+
+#selfAuditTab #auditResultsLog {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 12px;
+    padding: 4px;
+    margin-top: 16px;
+}
+
+#selfAuditTab .audit-result-card {
+    aspect-ratio: 1;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 10px;
+    text-align: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+#selfAuditTab .audit-result-card.clickable {
+    cursor: pointer;
+}
+
+#selfAuditTab .audit-result-card.clickable:hover {
+    border-color: var(--primary);
+    background: var(--bg-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+}
+
+#selfAuditTab .audit-card-badge {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+}
+
+#selfAuditTab .audit-card-badge.pass { background: var(--success); }
+#selfAuditTab .audit-card-badge.fail { background: var(--danger); }
+#selfAuditTab .audit-card-badge.running {
+    background: var(--warning);
+    animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+    0% { transform: scale(0.95); opacity: 0.8; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+#selfAuditTab .audit-card-icon {
+    font-size: 20px;
+    margin-bottom: 4px;
+    opacity: 0.6;
+}
+
+#selfAuditTab .audit-card-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: auto;
+}
+
+#selfAuditTab .audit-card-score {
+    font-family: 'Outfit', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--primary);
+    line-height: 1;
+    margin: 8px 0;
+}
+
+#selfAuditTab .audit-card-meta {
+    font-size: 9px;
+    color: var(--text-muted);
+    opacity: 0.7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+/* Detail View Overlays */
+#auditDetailView {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-main);
+    z-index: 1000;
+    padding: 24px;
+    overflow-y: auto;
+    animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+
+#auditDetailView header {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 24px;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.detail-back-btn {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.detail-back-btn:hover {
+    color: var(--text-main);
+    border-color: var(--text-main);
+    background: var(--bg-hover);
+}
+
+.audit-status-box {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    padding: 10px;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 11px;
+    height: 100px;
+    overflow-y: auto;
+    color: #94a3b8;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.audit-status-line.active {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.audit-status-line.error {
+    color: var(--danger);
+}
+
+/* Report UI */
+.audit-report-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-bottom: 24px;
+}
+
+.audit-health-header {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+    text-align: center;
+    position: relative;
+    backdrop-filter: blur(10px);
+}
+
+.health-meter {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
+}
+
+.health-score-value {
+    font-size: 24px;
+    font-weight: 800;
+    font-family: 'Outfit', sans-serif;
+    color: var(--text-main);
+}
+
+.health-label {
+    text-transform: uppercase;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+}
+
+.audit-metric-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.metric-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: all 0.2s;
+}
+
+.metric-card.critical { border-left: 3px solid var(--danger); }
+.metric-card.warning { border-left: 3px solid var(--warning); }
+.metric-card.good { border-left: 3px solid var(--success); }
+
+.ai-insights-panel {
+    background: rgba(99, 102, 241, 0.05);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: var(--radius-md);
+    padding: 16px;
+}
+
+.insight-title {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.insight-item {
+    font-size: 11px;
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    line-height: 1.4;
+}

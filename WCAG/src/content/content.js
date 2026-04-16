@@ -80,7 +80,7 @@
 					handleColorAnalysis(sendResponse);
 					return true;
 				case 'analyzeContent':
-					handleContentAnalysis(sendResponse);
+					handleContentAnalysis(request, sendResponse);
 					return true;
 				case 'analyzeLinks':
 					handleLinkAnalysis(sendResponse);
@@ -529,10 +529,11 @@
 		/**
 		* Handle content analysis request (Layout, Duplicates, Lorem)
 		*/
-		async function handleContentAnalysis(sendResponse) {
+		async function handleContentAnalysis(request, sendResponse) {
 			try {
-				console.log('Starting content audit...');
-				const result = await ContentAnalyzer.analyze();
+				const type = request.type || 'all';
+				console.log(`Starting content audit: ${type}...`);
+				const result = await ContentAnalyzer.analyze(type);
 				console.log('✅ Analysis complete. Sending response:', result);
 
 				// Send explicit message to update UI (more robust than return)
@@ -549,21 +550,6 @@
 					console.warn('Could not send runtime message (sidepanel might be closed):', e);
 				}
 
-				// FALLBACK: Write to storage (Bypasses message channel issues)
-				try {
-					await chrome.storage.local.set({
-						latestAnalysis: {
-							loremIpsum: result.loremIpsum,
-							layout: result.layout,
-							duplicates: result.duplicates,
-							timestamp: Date.now()
-						}
-					});
-					console.log('💾 Stored analysis results in local storage.');
-				} catch (e) {
-					console.error('Storage write failed:', e);
-				}
-
 				sendResponse({
 					success: true,
 					layout: result.layout,
@@ -572,7 +558,6 @@
 				});
 			} catch (error) {
 				console.error('Content analysis error:', error);
-				// Check if ContentAnalyzer is defined
 				if (typeof ContentAnalyzer === 'undefined') {
 					sendResponse({ success: false, error: 'ContentAnalyzer module not loaded' });
 				} else {

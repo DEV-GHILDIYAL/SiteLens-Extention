@@ -1,0 +1,123 @@
+/* SiteLens - Content Splitter Feature Styles */
+
+#contentTab #contentBlocks {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+#contentTab .splitter-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+#contentTab .splitter-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary);
+}
+
+#contentTab .splitter-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 4px;
+}
+
+#contentTab .splitter-card.heading-card::before {
+    background: linear-gradient(to bottom, var(--primary), var(--primary-hover));
+}
+
+#contentTab .splitter-card.content-card::before {
+    background: linear-gradient(to bottom, var(--secondary), #a855f7);
+}
+
+#contentTab .card-chip {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+}
+
+#contentTab .heading-card .card-chip {
+    color: var(--primary);
+}
+
+#contentTab .content-card .card-chip {
+    color: var(--secondary);
+}
+
+#contentTab .card-body {
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text-main);
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+#contentTab .card-body.text-content {
+    white-space: pre-wrap;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--text-muted);
+}
+
+#contentTab .splitter-actions {
+    display: flex;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid var(--border-color);
+    justify-content: flex-end;
+}
+
+#contentTab .splitter-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#contentTab .splitter-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-main);
+}
+
+#contentTab .splitter-btn.copy-btn:hover {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+#contentTab .splitter-btn.delete-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+#contentTab .splitter-btn.success {
+    background: var(--success) !important;
+    color: white !important;
+}

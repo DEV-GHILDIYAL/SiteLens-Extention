@@ -2122,7 +2122,7 @@ async function runSpecificContentAudit(type) {
 
 
     console.log(`🔍 Content Audit (${type}): Sending message...`);
-    chrome.tabs.sendMessage(tab.id, { action: 'analyzeContent' }, (response) => {
+    chrome.tabs.sendMessage(tab.id, { action: 'analyzeContent', type: type }, (response) => {
       console.log(`🔍 Content Audit (${type}): Response received`, response);
       // Handle runtime errors (connection lost, etc.)
       // Handle runtime errors (connection lost, etc.)

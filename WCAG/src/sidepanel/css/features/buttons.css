@@ -1,0 +1,182 @@
+/* SiteLens - Button Audit Feature Styles */
+
+#buttonsTab .button-designs {
+    display: grid;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+#buttonsTab .button-design-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: all 0.2s;
+    box-shadow: none;
+}
+
+#buttonsTab .button-design-card:hover {
+    border-color: var(--primary);
+}
+
+#buttonsTab .design-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 6px;
+}
+
+#buttonsTab .preview-button {
+    font-family: 'Inter', sans-serif;
+    align-self: flex-start;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: default;
+    transition: all 0.2s;
+}
+
+#buttonsTab .design-specs {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    background: var(--bg-main);
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+}
+
+#buttonsTab .spec-row {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+}
+
+#buttonsTab .spec-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+#buttonsTab .spec-label {
+    color: var(--text-dim);
+}
+
+#buttonsTab .spec-value {
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#buttonsTab .color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+#buttonsTab .contrast-badge.pass {
+    color: var(--success);
+    font-weight: 600;
+}
+
+#buttonsTab .contrast-badge.fail {
+    color: var(--danger);
+    font-weight: 600;
+}
+
+#buttonsTab .button-status {
+    text-align: center;
+    margin-bottom: 24px;
+    background: var(--bg-surface);
+    padding: 20px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+#buttonsTab .status-indicator {
+    padding: 8px 16px;
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#buttonsTab .status-indicator.pass {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid var(--success);
+}
+
+#buttonsTab .status-indicator.fail {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+}
+
+#buttonsTab .status-indicator.warning {
+    background: var(--warning-bg);
+    color: var(--warning);
+    border: 1px solid var(--warning);
+}
+
+#buttonsTab .status-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+#buttonsTab .status-badge.warning {
+    background: var(--warning-bg);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+#buttonsTab .status-badge.success {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+#buttonsTab .button-issue {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#buttonsTab .button-issue:hover {
+    border-color: var(--primary);
+    background: var(--bg-hover);
+}
+
+#buttonsTab .issue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+#buttonsTab .issue-text {
+    font-weight: 600;
+    color: var(--text-main);
+    font-size: 14px;
+}

@@ -4,27 +4,35 @@
  */
 const ContentAnalyzer = {
 
-    async analyze() {
-        console.log('📝 Starting Content Analysis (v4 - Async)...');
+    async analyze(type = 'all') {
+        console.log(`📝 Starting Content Analysis (${type}) - v5...`);
 
         try {
-            console.log('1. Checking Layout Consistency... (start)');
-            const layout = await this.checkLayoutConsistency();
-            console.log('✅ Layout Consistency Check Complete');
-
-            console.log('2. Checking Duplicate Content... (start)');
-            const duplicates = await this.checkDuplicateContent();
-            console.log('✅ Duplicate Content Check Complete');
-
-            console.log('3. Checking Lorem Ipsum... (start)');
-            const loremIpsum = await this.checkLoremIpsum();
-            console.log('✅ Lorem Ipsum Check Complete');
-
-            return {
-                layout,
-                duplicates,
-                loremIpsum
+            const results = {
+                layout: null,
+                duplicates: null,
+                loremIpsum: null
             };
+
+            if (type === 'all' || type === 'layout') {
+                console.log('1. Checking Layout Consistency... (start)');
+                results.layout = await this.checkLayoutConsistency();
+                console.log('✅ Layout Consistency Check Complete');
+            }
+
+            if (type === 'all' || type === 'duplicate') {
+                console.log('2. Checking Duplicate Content... (start)');
+                results.duplicates = await this.checkDuplicateContent();
+                console.log('✅ Duplicate Content Check Complete');
+            }
+
+            if (type === 'all' || type === 'lorem' || type === 'loremIpsum') {
+                console.log('3. Checking Lorem Ipsum... (start)');
+                results.loremIpsum = await this.checkLoremIpsum();
+                console.log('✅ Lorem Ipsum Check Complete');
+            }
+
+            return results;
         } catch (error) {
             console.error('❌ Error during Content Analysis step:', error);
             throw error;

@@ -1,0 +1,94 @@
+/* SiteLens - Screenshot & Layout Tool Feature Styles */
+
+#screenshotTab .action-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    width: 100%;
+    text-align: left;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+    transition: all 0.2s ease;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+#screenshotTab .action-card:hover {
+    border-color: var(--primary);
+    background: var(--bg-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+#screenshotTab .action-card .btn-icon {
+    font-size: 24px;
+    background: rgba(255, 255, 255, 0.05);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+}
+
+#screenshotTab .action-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+#screenshotTab .action-text strong {
+    font-size: 14px;
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+#screenshotTab .action-text span {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+#screenshotTab .info-box {
+    background: var(--bg-surface);
+    padding: 12px;
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    border: 1px dashed var(--border-color);
+    margin-top: 16px;
+}
+
+#screenshotTab .file-upload-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-surface);
+    border: 1px dashed var(--border-color);
+    padding: 16px;
+    border-radius: var(--radius-md);
+    transition: all 0.2s;
+}
+
+#screenshotTab .file-upload-container:hover {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+#screenshotTab input[type="file"]::file-selector-button {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    margin-right: 12px;
+    transition: all 0.2s;
+}
+
+#screenshotTab input[type="file"]::file-selector-button:hover {
+    background: var(--bg-hover);
+    color: var(--primary);
+}

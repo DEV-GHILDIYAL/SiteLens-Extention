@@ -1,0 +1,47 @@
+/* SiteLens - Theme Generator Feature Styles */
+
+#themeTab .theme-section {
+    padding-bottom: 60px;
+}
+
+#themeTab .palette-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+}
+
+#themeTab .palette-item {
+    height: 80px;
+    border-radius: var(--radius-sm);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    font-size: 10px;
+    box-shadow: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+    cursor: copy;
+}
+
+#themeTab .palette-item:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.2);
+    z-index: 2;
+}
+
+#themeTab .palette-name {
+    font-weight: 700;
+    mix-blend-mode: difference;
+    color: #fff;
+    margin-bottom: 2px;
+}
+
+#themeTab .palette-hex {
+    font-family: monospace;
+    mix-blend-mode: difference;
+    color: #fff;
+    opacity: 0.9;
+    font-size: 10px;
+}
