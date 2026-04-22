@@ -12,10 +12,121 @@
 
 .features-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
-    gap: 12px;
-    padding: 4px;
-    padding-bottom: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    padding: 12px 4px;
+}
+
+/* --- Category Accordions --- */
+.feature-category {
+    margin-bottom: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.3);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.feature-category[open] {
+    background: rgba(15, 23, 42, 0.5);
+    border-color: rgba(99, 102, 241, 0.2);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.category-header {
+    padding: 12px 16px;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-main);
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.category-header::-webkit-details-marker {
+    display: none;
+}
+
+.category-header:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.category-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: 0.02em;
+}
+
+.category-icon {
+    font-size: 16px;
+    opacity: 0.8;
+}
+
+.category-arrow {
+    font-size: 10px;
+    opacity: 0.5;
+    transition: transform 0.3s ease;
+}
+
+.feature-category[open] .category-arrow {
+    transform: rotate(90deg);
+}
+
+/* Info Section Content */
+.category-info-content {
+    padding: 0 16px 16px 16px;
+    animation: fadeIn 0.3s ease;
+}
+
+.info-block {
+    margin-top: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.info-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+}
+
+.info-text {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.info-links {
+    margin-top: 12px;
+    display: flex;
+    gap: 10px;
+}
+
+.info-link {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary);
+    text-decoration: none;
+    padding: 4px 8px;
+    background: rgba(99, 102, 241, 0.1);
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.info-link:hover {
+    background: var(--primary);
+    color: white;
 }
 
 @media (max-width: 320px) {
@@ -109,6 +220,17 @@
     display: none !important;
 }
 
+body {
+    width: 100%;
+    min-width: 240px; /* Supporting narrower sidebars */
+    min-height: 100vh;
+    background: var(--bg-main);
+    color: var(--text-main);
+    overflow-x: hidden;
+    line-height: 1.4;
+    font-size: 11.5px; /* Slightly smaller base font */
+}
+
 .page-title {
     font-family: 'Outfit', sans-serif;
     font-size: 22px;
@@ -127,9 +249,128 @@
     line-height: 1.6;
 }
 
-.content-section,
-.theme-section,
-.crawl-section {
-    max-width: 800px;
-    margin: 0 auto;
+/* --- Info & Support Page Styles --- */
+.about-tab {
+    padding: 20px 8px;
+    color: var(--text-main);
+}
+
+.about-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.05));
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.about-header h1 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 24px;
+    background: linear-gradient(to right, #fff, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+}
+
+.about-section-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 32px 0 16px 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.about-feature-card {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+}
+
+.about-feature-card:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(99, 102, 241, 0.2);
+}
+
+.about-feature-card strong {
+    color: #818cf8;
+    display: block;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+/* Dev Profile Styles */
+.dev-profile-card {
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 20px;
+    padding: 24px;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.dev-name {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 4px;
+    color: white;
+}
+
+.dev-role {
+    font-size: 13px;
+    color: var(--primary);
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.dev-bio {
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+}
+
+.skill-tag-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.skill-tag {
+    background: rgba(99, 102, 241, 0.1);
+    color: #a5b4fc;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 10.5px;
+    font-weight: 700;
+    border: 1px solid rgba(99, 102, 241, 0.1);
+}
+
+.project-capsule {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 10px;
+    border-left: 3px solid var(--primary);
+}
+
+.project-name {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.project-desc {
+    font-size: 11.5px;
+    color: var(--text-dim);
+    line-height: 1.5;
 }

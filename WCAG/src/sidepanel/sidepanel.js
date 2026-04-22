@@ -3404,6 +3404,7 @@ function navigateToFeature(feature) {
   // Reset internal states of complex features
   if (window.selfAudit) window.selfAudit.resetUI();
 }
+window.navigateToFeature = navigateToFeature;
 
 function navigateToHome() {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -3413,8 +3414,25 @@ function navigateToHome() {
   // Reset internal states
   if (window.selfAudit) window.selfAudit.resetUI();
 }
+window.navigateToHome = navigateToHome;
 
 // Final Initialization
+const viewAboutBtn = document.getElementById('viewAboutBtn');
+const backToHomeBtnFromAbout = document.getElementById('backToHomeFromAboutBtn');
+
+if (viewAboutBtn) {
+  viewAboutBtn.addEventListener('click', () => {
+    console.log('Navigating to aboutTab');
+    navigateToFeature('aboutTab');
+  });
+}
+if (backToHomeBtnFromAbout) {
+  backToHomeBtnFromAbout.addEventListener('click', () => {
+    console.log('Navigating to homeTab');
+    navigateToHome();
+  });
+}
+
 initializeNavigation();
 initializeFeatures();
 });

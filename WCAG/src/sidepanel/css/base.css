@@ -50,13 +50,13 @@
 
 body {
     width: 100%;
-    min-width: 250px;
+    min-width: 240px; /* Supporting narrower sidebars */
     min-height: 100vh;
     background: var(--bg-main);
     color: var(--text-main);
     overflow-x: hidden;
-    line-height: 1.4; /* Slightly tighter line height */
-    font-size: 12px; /* Reduced from 13px */
+    line-height: 1.4;
+    font-size: 11.5px; /* Slightly smaller base font */
 }
 
 ::-webkit-scrollbar {

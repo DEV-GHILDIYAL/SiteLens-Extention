@@ -29,139 +29,259 @@
         <!-- HOME: FEATURE CARDS -->
         <div class="tab-content active" id="homeTab">
             <div class="features-home">
-                <div class="features-grid">
-                    <!-- Contrast Analyzer -->
-                    <div class="feature-card" data-feature="analyze">
-                        <div class="feature-card-icon">🔍</div>
-                        <h3 class="feature-card-title">Contrast Analyzer</h3>
-                        <p class="feature-card-desc">Check color contrast ratios for WCAG compliance</p>
+                <!-- Category 1: Accessibility -->
+                <details class="feature-category" open>
+                    <summary class="category-header">
+                        <div class="category-title">
+                            <span class="category-icon">🛠️</span> Accessibility Audit
+                        </div>
+                        <span class="category-arrow">▶</span>
+                    </summary>
+                    <div class="features-grid">
+                        <div class="feature-card" data-feature="analyze">
+                            <div class="feature-card-icon">🔍</div>
+                            <h3 class="feature-card-title">Contrast Analyzer</h3>
+                        </div>
+                        <div class="feature-card" data-feature="manual">
+                            <div class="feature-card-icon">⚡</div>
+                            <h3 class="feature-card-title">Manual Checker</h3>
+                        </div>
+                        <div class="feature-card" data-feature="images">
+                            <div class="feature-card-icon">🖼️</div>
+                            <h3 class="feature-card-title">Image Audit</h3>
+                        </div>
+                        <div class="feature-card" data-feature="buttonAudit">
+                            <div class="feature-card-icon">📝</div>
+                            <h3 class="feature-card-title">Button Audit</h3>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Category 2: Navigation -->
+                <details class="feature-category">
+                    <summary class="category-header">
+                        <div class="category-title">
+                            <span class="category-icon">🔍</span> Navigation & Structure
+                        </div>
+                        <span class="category-arrow">▶</span>
+                    </summary>
+                    <div class="features-grid">
+                        <div class="feature-card" data-feature="hyperlinks">
+                            <div class="feature-card-icon">🔗</div>
+                            <h3 class="feature-card-title">Link Detector</h3>
+                        </div>
+                        <div class="feature-card" data-feature="buttonAnalyze">
+                            <div class="feature-card-icon">🔗</div>
+                            <h3 class="feature-card-title">Button Analyze</h3>
+                        </div>
+                        <div class="feature-card" data-feature="seo">
+                            <div class="feature-card-icon">🌐</div>
+                            <h3 class="feature-card-title">SEO Audit</h3>
+                        </div>
+                        <div class="feature-card" data-feature="fonts">
+                            <div class="feature-card-icon">📝</div>
+                            <h3 class="feature-card-title">Font Audit</h3>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Category 3: Design -->
+                <details class="feature-category">
+                    <summary class="category-header">
+                        <div class="category-title">
+                            <span class="category-icon">🎨</span> Design & Assets
+                        </div>
+                        <span class="category-arrow">▶</span>
+                    </summary>
+                    <div class="features-grid">
+                        <div class="feature-card" data-feature="colors">
+                            <div class="feature-card-icon">🎨</div>
+                            <h3 class="feature-card-title">Color Extractor</h3>
+                        </div>
+                        <div class="feature-card" data-feature="theme">
+                            <div class="feature-card-icon">✨</div>
+                            <h3 class="feature-card-title">Theme Gen</h3>
+                        </div>
+                        <div class="feature-card" data-feature="downloader">
+                            <div class="feature-card-icon">⬇️</div>
+                            <h3 class="feature-card-title">Downloader</h3>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Category 4: Content -->
+                <details class="feature-category">
+                    <summary class="category-header">
+                        <div class="category-title">
+                            <span class="category-icon">📝</span> Content Tools
+                        </div>
+                        <span class="category-arrow">▶</span>
+                    </summary>
+                    <div class="features-grid">
+                        <div class="feature-card" data-feature="content">
+                            <div class="feature-card-icon">📄</div>
+                            <h3 class="feature-card-title">Content Check</h3>
+                        </div>
+                        <div class="feature-card" data-feature="contentHelper">
+                            <div class="feature-card-icon">📋</div>
+                            <h3 class="feature-card-title">Splitter</h3>
+                        </div>
+                        <div class="feature-card" data-feature="lorem">
+                            <div class="feature-card-icon">🚫</div>
+                            <h3 class="feature-card-title">Lorem Detect</h3>
+                        </div>
+                        <div class="feature-card" data-feature="selfAudit">
+                            <div class="feature-card-icon">🤖</div>
+                            <h3 class="feature-card-title">AI Self-Audit</h3>
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Category 5: About & Me -->
+                <details class="feature-category">
+                    <summary class="category-header">
+                        <div class="category-title">
+                            <span class="category-icon">ℹ️</span> Info & Support
+                        </div>
+                        <span class="category-arrow">▶</span>
+                    </summary>
+                    <div class="category-info-content">
+                        <div class="info-block">
+                            <div class="info-title">SiteLens Hub</div>
+                            <div class="info-text">
+                                Access detailed guides for all features and professional developer documentation.
+                            </div>
+                            <div class="info-links" style="margin-top: 10px;">
+                                <button id="viewAboutBtn" class="info-link" style="border:none; cursor:pointer;">View Detailed Guide & Bio</button>
+                            </div>
+                        </div>
+
+                        <div class="info-block" style="background: rgba(99, 102, 241, 0.05);">
+                            <div class="info-title">Quick Support</div>
+                            <div class="info-links">
+                                <a href="https://github.com/DEV-GHILDIYAL/SiteLens-Extention" class="info-link" target="_blank">Report Bug</a>
+                                <a href="https://www.linkedin.com/in/dev-ghildiyal/" class="info-link" target="_blank">LinkedIn</a>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </div>
+
+        <!-- TAB: ABOUT / INFO PAGE -->
+        <div class="tab-content" id="aboutTab">
+            <div class="about-tab">
+                <div class="about-header">
+                    <h1>SiteLens Suite</h1>
+                    <p style="font-size: 13px; opacity: 0.8;">The Professional Accessibility Toolkit</p>
+                </div>
+
+                <h2 class="about-section-title">🚀 Feature Documentation</h2>
+                
+                <div class="about-feature-card">
+                    <strong>🔍 Contrast Analyzer</strong>
+                    <p class="info-text">Real-time WCAG 2.1 auditing for text and images. Instantly identifies color pairs that fail accessibility standards across the entire page.</p>
+                </div>
+
+                <div class="about-feature-card">
+                    <strong>⚡ Manual Checker</strong>
+                    <p class="info-text">Premium tool for ad-hoc color testing. Allows designers to input Hex codes and see live luminosity-aware previews with pass/fail ratios.</p>
+                </div>
+
+                <div class="about-feature-card">
+                    <strong>🔗 Link Detector</strong>
+                    <p class="info-text">Advanced crawler with auto-scrolling logic to capture lazy-loaded links. It verifies destination titles and warns about broken paths.</p>
+                </div>
+
+                <div class="about-feature-card">
+                    <strong>🖼️ Image Audit</strong>
+                    <p class="info-text">Scans the DOM for images missing essential 'alt' attributes or featuring duplicate sources, ensuring high screen-reader compatibility.</p>
+                </div>
+
+                <div class="about-feature-card">
+                    <strong>📝 Font Audit</strong>
+                    <p class="info-text">Analyzes heading hierarchies (H1-H6) and font properties to ensure a clear, logical content structure for all users.</p>
+                </div>
+
+                <div class="about-feature-card">
+                    <strong>🔘 Button Audit & Analyze</strong>
+                    <p class="info-text">Dual-mode tool to verify button casing, color compliance, and destination validity (Titles vs. targets).</p>
+                </div>
+
+                <div class="about-feature-card">
+                    <strong>🎨 Color Extractor & Theme Gen</strong>
+                    <p class="info-text">Extracts the full brand palette from any site and generates WCAG-compliant color variations for design consistency.</p>
+                </div>
+
+                <div class="about-feature-card">
+                    <strong>📄 Content Hub (Checker & Splitter)</strong>
+                    <p class="info-text">Verifies that specific document segments exist on-page and splits complex text into logical heading/content blocks for easier auditing.</p>
+                </div>
+
+                <div class="about-feature-card">
+                    <strong>🚫 Lorem & Placeholder Detector</strong>
+                    <p class="info-text">Scans for common placeholder text like 'Lorem Ipsum', helping you polish your site before production deployments.</p>
+                </div>
+
+                <div class="about-feature-card">
+                    <strong>🤖 AI Self-Audit</strong>
+                    <p class="info-text">Simulates human-like auditing to verify dynamic elements and complex UI flows that static scans might miss.</p>
+                </div>
+
+                <h2 class="about-section-title">👨‍💻 Developer Spotlight</h2>
+                
+                <div class="dev-profile-card">
+                    <div class="dev-name">Dev Lalit Ghildiyal</div>
+                    <div class="dev-role">B.Sc. Computer Science Graduate & Data Analyst</div>
+                    
+                    <p class="dev-bio">
+                        Analytical and detail-oriented graduate (CGPA: 9.02) with a passion for building professional-grade tools. 
+                        Expertise in Python, MERN stack, and Data Analytics, with a focus on streamlining workflows through automation.
+                    </p>
+
+                    <div class="info-title">Core Skills</div>
+                    <div class="skill-tag-container">
+                        <span class="skill-tag">Python (Pandas, NumPy)</span>
+                        <span class="skill-tag">MERN Stack</span>
+                        <span class="skill-tag">SQL & MongoDB</span>
+                        <span class="skill-tag">Power BI</span>
+                        <span class="skill-tag">Web Scraping</span>
+                        <span class="skill-tag">Technical Documentation</span>
                     </div>
 
-
-                    <!-- Font Audit -->
-                    <div class="feature-card" data-feature="fonts">
-                        <div class="feature-card-icon">📝</div>
-                        <h3 class="feature-card-title">Font Audit</h3>
-                        <p class="feature-card-desc">Check heading hierarchy and structure</p>
+                    <div class="info-title">Key Projects</div>
+                    <div class="project-capsule">
+                        <div class="project-name">Real-Time Chat Application</div>
+                        <div class="project-desc">Full-featured chat platform using Socket.io and MERN, featuring JWT authentication and Zustand for state management.</div>
                     </div>
 
-                    <!-- Image Audit -->
-                    <div class="feature-card" data-feature="images">
-                        <div class="feature-card-icon">🖼️</div>
-                        <h3 class="feature-card-title">Image Audit</h3>
-                        <p class="feature-card-desc">Scan images for missing alt text</p>
+                    <div class="project-capsule">
+                        <div class="project-name">Project Management Portal</div>
+                        <div class="project-desc">Complex role-based system for tracking attendance and project progress using the MERN stack.</div>
                     </div>
 
-                    <!-- Image Downloader -->
-                    <div class="feature-card" data-feature="downloader">
-                        <div class="feature-card-icon">⬇️</div>
-                        <h3 class="feature-card-title">Image Downloader</h3>
-                        <p class="feature-card-desc">Extract and download images</p>
+                    <div class="info-title" style="margin-top: 20px;">Awards</div>
+                    <div class="info-text" style="margin-bottom: 20px;">
+                        🏆 Web Design Competition: Awarded for innovative React + ShadCN UI interface design.
                     </div>
 
-
-
-                    <!-- SEO Audit -->
-                    <div class="feature-card" data-feature="seo">
-                        <div class="feature-card-icon">🔗</div>
-                        <h3 class="feature-card-title">SEO Audit</h3>
-                        <p class="feature-card-desc">Check meta tags and SEO elements</p>
-                    </div>
-
-                    <!-- Color Audit -->
-                    <div class="feature-card" data-feature="colors">
-                        <div class="feature-card-icon">🎨</div>
-                        <h3 class="feature-card-title">Color Extractor</h3>
-                        <p class="feature-card-desc">Extract all used colors on page</p>
-                    </div>
-
-                    <!-- Manual Checker -->
-                    <div class="feature-card" data-feature="manual">
-                        <div class="feature-card-icon">⚡</div>
-                        <h3 class="feature-card-title">Manual Checker</h3>
-                        <p class="feature-card-desc">Test custom color combinations</p>
-                    </div>
-
-                    <!-- Theme Generator -->
-                    <div class="feature-card" data-feature="theme">
-                        <div class="feature-card-icon">🎨</div>
-                        <h3 class="feature-card-title">Theme Generator</h3>
-                        <p class="feature-card-desc">Generate WCAG-compliant color palettes</p>
-                    </div>
-
-                    <!-- Content Checker -->
-                    <div class="feature-card" data-feature="content">
-                        <div class="feature-card-icon">📄</div>
-                        <h3 class="feature-card-title">Content Checker</h3>
-                        <p class="feature-card-desc">Verify text content against page</p>
-                    </div>
-
-                    <!-- Multi-Page Crawler -->
-
-                    <!-- NEW: Button Audit -->
-                    <div class="feature-card" data-feature="buttonAudit">
-                        <div class="feature-card-icon">📝</div>
-                        <h3 class="feature-card-title">Button Audit</h3>
-                        <p class="feature-card-desc">Check casing & color compliance.</p>
-                    </div>
-
-                    <!-- NEW: Button Analyze -->
-                    <div class="feature-card" data-feature="buttonAnalyze">
-                        <div class="feature-card-icon">🔗</div>
-                        <h3 class="feature-card-title">Button Analyze</h3>
-                        <p class="feature-card-desc">Verify button targets & titles.</p>
-                    </div>
-
-                    <!-- Link Detector -->
-                    <div class="feature-card" data-feature="hyperlinks">
-                        <div class="feature-card-icon">⚡</div>
-                        <h3 class="feature-card-title">Link Detector</h3>
-                        <p class="feature-card-desc">Audit all page links & titles.</p>
-                    </div>
-
-                    <!-- Content Splitter (New) -->
-                    <div class="feature-card" data-feature="contentHelper">
-                        <div class="feature-card-icon">📋</div>
-                        <h3 class="feature-card-title">Content Splitter</h3>
-                        <p class="feature-card-desc">Split text into Heading/Content blocks</p>
-                    </div>
-
-                    <!-- Lorem Detector -->
-                    <div class="feature-card" data-feature="lorem">
-                        <div class="feature-card-icon">🚫</div>
-                        <h3 class="feature-card-title">Lorem Detector</h3>
-                        <p class="feature-card-desc">Find leftover placeholder text</p>
-                    </div>
-
-
-                    <!-- Screenshot Tool -->
-                    <div class="feature-card" data-feature="screenshot">
-                        <div class="feature-card-icon">📸</div>
-                        <h3 class="feature-card-title">Screenshot Tool</h3>
-                        <p class="feature-card-desc">Capture full page from header to footer</p>
-                    </div>
-
-                    <!-- Self-Audit (New) -->
-                    <div class="feature-card" data-feature="selfAudit">
-                        <div class="feature-card-icon">🤖</div>
-                        <h3 class="feature-card-title">AI Self-Audit</h3>
-                        <p class="feature-card-desc">Crawl website and simulate human audit</p>
-                    </div>
-
-                    <!-- Alt Text Generator (New) -->
-                    <div class="feature-card" data-feature="altGenerator">
-                        <div class="feature-card-icon">🏷️</div>
-                        <h3 class="feature-card-title">Alt Text Generator</h3>
-                        <p class="feature-card-desc">Generate SEO-friendly alt text labels</p>
-                    </div>
-
-                    <!-- Image Audit (New) -->
-                    <div class="feature-card" data-feature="imageAudit">
-                        <div class="feature-card-icon">📸</div>
-                        <h3 class="feature-card-title">Image Integrity</h3>
-                        <p class="feature-card-desc">Scan site for duplicate/repeat images</p>
+                    <div class="info-links" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                        <a href="https://linkedin.com/in/dev-ghildiyal/" target="_blank" class="info-link">LinkedIn</a>
+                        <a href="mailto:ghildiyaldev1325@gmail.com" class="info-link">Email Me</a>
                     </div>
                 </div>
+
+                <h2 class="about-section-title">🤝 Contribution</h2>
+                <div class="about-feature-card" style="border-left: 3px solid #10b981;">
+                    <p class="info-text">SiteLens is an open-source project. If you'd like to contribute, report a bug, or suggest a new feature, join us on GitHub!</p>
+                    <div class="info-links" style="margin-top: 10px;">
+                        <a href="https://github.com/DEV-GHILDIYAL/SiteLens-Extention" target="_blank" class="info-link" style="background: #059669;">GitHub Repository</a>
+                    </div>
+                </div>
+
+                <button id="backToHomeFromAboutBtn" class="btn btn-secondary" style="width: 100%; margin-top: 40px; margin-bottom: 20px;">
+                    <span class="btn-icon">🏠</span> Back to Home
+                </button>
             </div>
         </div>
 
