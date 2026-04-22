@@ -641,17 +641,20 @@ function initializeManualChecker() {
   textColorPicker.addEventListener('input', (e) => {
     textColor.value = e.target.value;
     textPreview.style.backgroundColor = e.target.value;
+    textPreview.textContent = e.target.value;
   });
 
   bgColorPicker.addEventListener('input', (e) => {
     bgColor.value = e.target.value;
     bgPreview.style.backgroundColor = e.target.value;
+    bgPreview.textContent = e.target.value;
   });
 
   textColor.addEventListener('input', (e) => {
     if (isValidHex(e.target.value)) {
       textColorPicker.value = e.target.value;
       textPreview.style.backgroundColor = e.target.value;
+      textPreview.textContent = e.target.value;
     }
   });
 
@@ -659,6 +662,7 @@ function initializeManualChecker() {
     if (isValidHex(e.target.value)) {
       bgColorPicker.value = e.target.value;
       bgPreview.style.backgroundColor = e.target.value;
+      bgPreview.textContent = e.target.value;
     }
   });
 
@@ -682,22 +686,49 @@ function initializeManualChecker() {
 
     manualResults.style.display = 'block';
     
-    // New Compact Result UI
+    // New Compact Result UI (Cute & Mosaic)
     const ratioHtml = `
-      <div class="compact-ratio-strip">
-        <div class="strip-main">
-          <span class="strip-ratio">${ratio.toFixed(2)}:1</span>
-          <span class="strip-status ${ratio >= 4.5 ? 'pass' : 'fail'}">${ratio >= 4.5 ? 'PASS' : 'FAIL'}</span>
+      <div class="ratio-display">
+        <div class="ratio-value">${ratio.toFixed(1)}</div>
+        <div class="ratio-label">Contrast Ratio</div>
+      </div>
+      <div class="compliance-grid mosaic">
+        <div class="compliance-box ${ratio >= 4.5 ? 'pass' : 'fail'}">
+          <div class="compliance-icon">${ratio >= 4.5 ? '✔' : '✘'}</div>
+          <div class="compliance-text">
+            <div class="compliance-name">AA Normal</div>
+            <div class="compliance-req">4.5:1</div>
+          </div>
         </div>
-        <div class="strip-compliance">
-          <span class="mini-badge ${ratio >= 4.5 ? 'pass' : 'fail'}">AA</span>
-          <span class="mini-badge ${ratio >= 7 ? 'pass' : 'fail'}">AAA</span>
-          <span class="mini-badge ${ratio >= 3 ? 'pass' : 'fail'}">LG</span>
+        <div class="compliance-box ${ratio >= 7 ? 'pass' : 'fail'}">
+          <div class="compliance-icon">${ratio >= 7 ? '✔' : '✘'}</div>
+          <div class="compliance-text">
+            <div class="compliance-name">AAA Normal</div>
+            <div class="compliance-req">7.0:1</div>
+          </div>
         </div>
+        <div class="compliance-box ${ratio >= 3 ? 'pass' : 'fail'}">
+          <div class="compliance-icon">${ratio >= 3 ? '✔' : '✘'}</div>
+          <div class="compliance-text">
+            <div class="compliance-name">AA Large</div>
+            <div class="compliance-req">3.0:1</div>
+          </div>
+        </div>
+        <div class="compliance-box ${ratio >= 4.5 ? 'pass' : 'fail'}">
+          <div class="compliance-icon">${ratio >= 4.5 ? '✔' : '✘'}</div>
+          <div class="compliance-text">
+            <div class="compliance-name">AAA Large</div>
+            <div class="compliance-req">4.5:1</div>
+          </div>
+        </div>
+      </div>
+      <div class="sample-preview">
+        <div id="sampleNormal" class="sample-text">Normal text (16px)</div>
+        <div id="sampleLarge" class="sample-text large">Large bold text (24px)</div>
       </div>
     `;
     
-    document.getElementById('manualRatio').innerHTML = ratioHtml;
+    manualResults.innerHTML = ratioHtml;
 
     // Small Sample View
     const sampleNormal = document.getElementById('sampleNormal');
@@ -706,19 +737,11 @@ function initializeManualChecker() {
     if (sampleNormal) {
       sampleNormal.style.color = text;
       sampleNormal.style.backgroundColor = bg;
-      sampleNormal.style.padding = '8px';
-      sampleNormal.style.borderRadius = '6px';
     }
     if (sampleLarge) {
       sampleLarge.style.color = text;
       sampleLarge.style.backgroundColor = bg;
-      sampleLarge.style.padding = '8px';
-      sampleLarge.style.borderRadius = '6px';
     }
-
-    // Hide the old large compliance grid if it exists
-    const oldGrid = document.querySelector('.compliance-grid');
-    if (oldGrid) oldGrid.style.display = 'none';
   }
 
   function updateCompliance(id, passes) {
@@ -1214,286 +1237,255 @@ function downloadText(text, filename) {
   URL.revokeObjectURL(url);
 }
 
-// ========== TAB 2: BUTTON AUDIT ==========
-function initializeButtonAudit() {
-  const buttonAnalyzeBtn = document.getElementById('buttonAnalyzeBtn');
-  if (buttonAnalyzeBtn) {
-    buttonAnalyzeBtn.addEventListener('click', async () => {
-      const originalText = buttonAnalyzeBtn.innerHTML;
-      buttonAnalyzeBtn.disabled = true;
-      buttonAnalyzeBtn.innerHTML = '⏳ Analyzing...';
+// ========== TAB: BUTTON AUDIT (Casing & Color) ==========
+function initializeButtonAuditFeature() {
+  const runBtn = document.getElementById('runButtonAuditBtn');
+  const grid = document.getElementById('buttonAuditGrid');
+  const resultsArea = document.getElementById('buttonAuditResults');
 
-      try {
-        await ensureFreshPage();
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        chrome.tabs.sendMessage(tab.id, { action: 'analyzeButtons' }, (response) => {
-          buttonAnalyzeBtn.disabled = false;
-          buttonAnalyzeBtn.innerHTML = originalText;
+  if (!runBtn || !grid) return;
 
-          if (response && response.success) {
-            displayButtonResults(response.summary);
-          } else {
-            alert('Button Analysis failed: ' + (response?.error || 'Unknown error'));
-          }
-        });
-      } catch (e) {
-        console.error(e);
-        buttonAnalyzeBtn.disabled = false;
-        buttonAnalyzeBtn.innerHTML = originalText;
-      }
-    });
-  }
+  runBtn.addEventListener('click', async () => {
+    const originalText = runBtn.innerHTML;
+    runBtn.disabled = true;
+    runBtn.innerHTML = '⌛ Refreshing...';
+    grid.innerHTML = '';
+    resultsArea.style.display = 'none';
 
-  // Highlight All Buttons Issue
-  const highlightAllBtn = document.getElementById('highlightAllButtonsBtn');
-  if (highlightAllBtn) {
-    highlightAllBtn.addEventListener('click', () => {
-      if (!lastButtonSummary) return;
+    try {
+      // Step 1: Refresh Page
+      await ensureFreshPage();
       
-      const selectors = [
-        ...lastButtonSummary.capitalizationIssues.map(i => i.button.selector),
-        ...lastButtonSummary.destinationIssues.map(i => i.button.selector)
-      ];
-
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs[0]) {
-          chrome.tabs.sendMessage(tabs[0].id, { action: 'highlightButtons', selectors }, (response) => {
-            if (response && response.success) {
-              highlightAllBtn.innerHTML = '✅ Highlighted!';
-              const clearBtn = document.getElementById('clearButtonHighlightsBtn');
-              if (clearBtn) clearBtn.style.display = 'block';
-              setTimeout(() => highlightAllBtn.innerHTML = '<span class="btn-icon">👁️</span> Highlight All Issues', 2000);
-            }
+      // Step 2: Ping Protocol (Ensure content script is ready)
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab) throw new Error("No active tab found");
+      
+      runBtn.innerHTML = '🧪 Verifying...';
+      try {
+        await new Promise((resolve, reject) => {
+          chrome.tabs.sendMessage(tab.id, { action: 'ping' }, (res) => {
+            if (chrome.runtime.lastError || !res) reject(new Error("Connection failed"));
+            else resolve();
           });
+        });
+      } catch (err) {
+        throw new Error("Content script not ready. Please reload the extension and the page.");
+      }
+
+      runBtn.innerHTML = '⏳ Auditing...';
+      chrome.tabs.sendMessage(tab.id, { action: 'analyzeButtonAudit' }, (response) => {
+        runBtn.disabled = false;
+        runBtn.innerHTML = originalText;
+
+        if (response && response.success) {
+          resultsArea.style.display = 'block';
+          renderButtonAuditResults(response.summary, grid);
+        } else {
+          const errorMsg = response?.error || 'Analysis failed';
+          if (errorMsg.includes('Unknown action')) {
+             grid.innerHTML = `
+              <div class="result-item fail">
+                <strong>Stale Script Detected</strong><br>
+                Please reload the extension from chrome://extensions and refresh this page.
+              </div>`;
+          } else {
+            grid.innerHTML = `<div class="result-item fail">Error: ${errorMsg}</div>`;
+          }
+          resultsArea.style.display = 'block';
         }
       });
-    });
-  }
-
-  // Clear Highlights
-  const clearBtn = document.getElementById('clearButtonHighlightsBtn');
-  if (clearBtn) {
-    clearBtn.addEventListener('click', () => {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs[0]) {
-          chrome.tabs.sendMessage(tabs[0].id, { action: 'clearButtonHighlight' }, () => {
-            clearBtn.style.display = 'none';
-          });
-        }
-      });
-    });
-  }
+    } catch (e) {
+      grid.innerHTML = `<div class="result-item fail">${e.message}</div>`;
+      resultsArea.style.display = 'block';
+      runBtn.disabled = false;
+      runBtn.innerHTML = originalText;
+    }
+  });
 }
 
-let lastButtonSummary = null;
-
-function displayButtonResults(summary) {
-  const buttonResults = document.getElementById('buttonResults');
-  if (!buttonResults) return;
-
-  buttonResults.style.display = 'block';
-  lastButtonSummary = summary;
-
-  // Show/Hide Actions based on issues
-  const buttonActions = document.getElementById('buttonActions');
-  const highlightAllBtn = document.getElementById('highlightAllButtonsBtn');
-  const clearHighlightsBtn = document.getElementById('clearButtonHighlightsBtn');
-
-  if (buttonActions) {
-    const hasIssues = (summary.capitalizationIssues.length + summary.destinationIssues.length) > 0;
-    buttonActions.style.display = 'grid'; // Use grid for action buttons
-    buttonActions.style.gridTemplateColumns = '1fr 1fr';
-    buttonActions.style.gap = '8px';
-    buttonActions.style.margin = '15px 0';
-
-    if (highlightAllBtn) {
-      highlightAllBtn.style.display = hasIssues ? 'block' : 'none';
-      highlightAllBtn.innerHTML = '<span class="btn-icon">👁️</span> Highlight All Issues';
-    }
-    if (clearHighlightsBtn) {
-      clearHighlightsBtn.style.display = 'none';
-    }
-  }
-
-  const hasIssues = (summary.capitalizationIssues.length + summary.destinationIssues.length) > 0;
-  const statusType = summary.stats.total === 0 ? 'warning' : (hasIssues ? 'fail' : 'pass');
+function renderButtonAuditResults(summary, container) {
+  if (!summary) return;
   
+  // Ensure fields exist to prevent crashes
+  const capIssues = summary.capitalizationIssues || [];
+  const colorIssues = summary.colorIssues || [];
+  const stats = summary.stats || { total: 0 };
+
+  const hasIssues = (capIssues.length + colorIssues.length) > 0;
+  const statusType = stats.total === 0 ? 'warning' : (hasIssues ? 'fail' : 'pass');
+
   let html = `
-      <div class="premium-status-card ${statusType}">
-        <div class="status-icon">${statusType === 'pass' ? '✅' : (statusType === 'warning' ? '⚠️' : '🚨')}</div>
-        <div class="status-content">
-          <div class="status-title">${summary.stats.total === 0 ? 'No Buttons Found' : (hasIssues ? 'Button Issues Detected' : 'All Buttons Valid')}</div>
-          <div class="status-desc">${summary.stats.total} buttons analyzed on this page.</div>
-        </div>
+    <div class="premium-status-card ${statusType}">
+      <div class="status-content">
+        <div class="status-title">${summary.stats.total === 0 ? 'No Buttons' : (hasIssues ? 'Compliance Issues Found' : 'Buttons Compliant')}</div>
+        <div class="status-desc">${summary.stats.total} buttons checked.</div>
       </div>
+    </div>
+  `;
 
-      <div class="premium-stats-grid">
-        <div class="stat-pill total">
-          <span class="pill-label">Total</span>
-          <span class="pill-value">${summary.stats.total}</span>
-        </div>
-        <div class="stat-pill warning">
-          <span class="pill-label">Caps</span>
-          <span class="pill-value">${summary.stats.capitalizationIssues}</span>
-        </div>
-        <div class="stat-pill danger">
-          <span class="pill-label">Links</span>
-          <span class="pill-value">${summary.stats.destinationIssues}</span>
-        </div>
-      </div>
-    `;
-
-  // Show issues if any
   if (hasIssues) {
-    html += `<div class="results-sections-wrapper">`;
-    
-    // Capitalization
+    // Casing Section
     if (summary.capitalizationIssues.length > 0) {
-      html += `
-        <div class="result-group">
-          <div class="group-header">📝 Capitalization Issues</div>
-          <div class="issue-cards-container">
-      `;
+      html += `<div class="result-group"><div class="group-header">📝 Casing Inconsistency</div>`;
       summary.capitalizationIssues.forEach(issue => {
         html += `
-          <div class="premium-issue-card warning clickable" data-selector="${escapeHtml(issue.button.selector)}">
-            <div class="card-left">
-              <div class="card-main-text">"${escapeHtml(issue.button.text)}"</div>
-              <div class="card-sub-text">${issue.message}</div>
-            </div>
-            <div class="card-right">
-              <span class="badge warning">${issue.style}</span>
-              <div class="card-arrow">→</div>
-            </div>
+          <div class="result-item warning">
+            <div style="font-weight:600;">"${escapeHtml(issue.button.text)}"</div>
+            <div style="font-size:10px; color:var(--text-dim);">${issue.message}</div>
           </div>
         `;
       });
-      html += `</div></div>`;
+      html += `</div>`;
     }
 
-    // Destination
-    if (summary.destinationIssues.length > 0) {
-      html += `
-        <div class="result-group">
-          <div class="group-header">🔗 Link Mismatches</div>
-          <div class="issue-cards-container">
-      `;
-      summary.destinationIssues.forEach(issue => {
+    // Color Section
+    if (summary.colorIssues.length > 0) {
+      html += `<div class="result-group"><div class="group-header">🎨 Contrast Violations</div>`;
+      summary.colorIssues.forEach(issue => {
         html += `
-          <div class="premium-issue-card danger clickable" data-selector="${escapeHtml(issue.button.selector)}">
-            <div class="card-left">
-              <div class="card-main-text">"${escapeHtml(issue.button.text)}"</div>
-              <div class="card-sub-text">${issue.message}</div>
-              <div class="card-code-block">${escapeHtml(issue.button.destination)}</div>
+          <div class="result-item fail">
+            <div style="display:flex; justify-content:space-between;">
+              <span style="font-weight:600;">"${escapeHtml(issue.button.text)}"</span>
+              <span class="badge fail">${issue.contrastRatio.toFixed(2)}:1</span>
             </div>
-            <div class="card-right">
-              <div class="card-arrow">→</div>
-            </div>
+            <div style="font-size:10px; color:var(--text-dim);">Background: ${issue.backgroundColor} | Text: ${issue.textColor}</div>
           </div>
         `;
       });
-      html += `</div></div>`;
+      html += `</div>`;
     }
-
-    html += `</div>`;
   } else if (summary.stats.total > 0) {
-    html += `
-      <div class="empty-state-card success">
-        <div class="empty-icon">✨</div>
-        <div class="empty-title">Great Job!</div>
-        <div class="empty-desc">No accessibility issues found for the buttons on this page.</div>
-      </div>
-    `;
+    html += `<div class="result-item pass">✅ All buttons follow consistent casing and pass contrast checks.</div>`;
   }
 
-  // All Buttons List (Collapsible or simplified)
-  if (summary.buttons.length > 0) {
-    html += `
-      <div class="result-group">
-        <div class="group-header">📋 Analyzed Buttons (${summary.buttons.length})</div>
-        <div class="premium-compact-list">
-    `;
-    summary.buttons.slice(0, 30).forEach(button => {
-      html += `
-        <div class="compact-item">
-          <span class="item-tag">${button.tagName}</span>
-          <span class="item-text">"${escapeHtml(button.text)}"</span>
-        </div>
-      `;
-    });
-    if (summary.buttons.length > 30) {
-      html += `<div class="list-more">+ ${summary.buttons.length - 30} more</div>`;
-    }
-    html += `</div></div>`;
-  }
+  container.innerHTML = html;
+}
 
-  buttonResults.innerHTML = html;
+// ========== TAB: BUTTON ANALYZE (Destinations) ==========
+function initializeButtonAnalyzeFeature() {
+  const runBtn = document.getElementById('runButtonAnalyzeBtn');
+  const grid = document.getElementById('buttonAnalyzeGrid');
+  const resultsArea = document.getElementById('buttonAnalyzeResults');
 
-  // Add click handlers
-  buttonResults.querySelectorAll('.premium-issue-card.clickable').forEach(card => {
-    card.addEventListener('click', () => {
-      const selector = card.getAttribute('data-selector');
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs[0]) {
-          chrome.tabs.sendMessage(tabs[0].id, { action: 'highlightButton', selector: selector });
+  if (!runBtn || !grid) return;
+
+  runBtn.addEventListener('click', async () => {
+    const originalText = runBtn.innerHTML;
+    runBtn.disabled = true;
+    runBtn.innerHTML = '⌛ Refreshing...';
+    grid.innerHTML = '';
+    resultsArea.style.display = 'none';
+
+    try {
+      // Step 1: Refresh Page
+      await ensureFreshPage();
+      
+      // Step 2: Ping Protocol
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab) throw new Error("No active tab found");
+
+      runBtn.innerHTML = '🧪 Verifying...';
+      try {
+        await new Promise((resolve, reject) => {
+          chrome.tabs.sendMessage(tab.id, { action: 'ping' }, (res) => {
+            if (chrome.runtime.lastError || !res) reject(new Error("Connection failed"));
+            else resolve();
+          });
+        });
+      } catch (err) {
+        throw new Error("Content script not ready. Please reload the extension and the page.");
+      }
+
+      runBtn.innerHTML = '⏳ Fetching Titles...';
+      chrome.tabs.sendMessage(tab.id, { action: 'analyzeButtonAnalyze' }, async (response) => {
+        if (response && response.success) {
+          resultsArea.style.display = 'block';
+          await processButtonAnalyzeResults(response.summary, grid, runBtn, originalText);
+        } else {
+          const errorMsg = response?.error || 'Analysis failed';
+          if (errorMsg.includes('Unknown action')) {
+             grid.innerHTML = `
+                <div class="result-item fail">
+                  <strong>Stale Script Detected</strong><br>
+                  Please reload the extension from chrome://extensions and refresh this page.
+                </div>`;
+          } else {
+            grid.innerHTML = `<div class="result-item fail">Error: ${errorMsg}</div>`;
+          }
+          resultsArea.style.display = 'block';
+          runBtn.disabled = false;
+          runBtn.innerHTML = originalText;
         }
       });
-    });
-  });
-}
-
-function toggleHighlightAllButtons() {
-  const btn = document.getElementById('highlightAllButtonsBtn');
-  const clearBtn = document.getElementById('clearButtonHighlightsBtn');
-
-  if (!lastButtonSummary) return;
-
-  const issues = [
-    ...lastButtonSummary.capitalizationIssues,
-    ...lastButtonSummary.destinationIssues
-  ];
-
-  if (issues.length === 0) return;
-
-  // Extract all selectors
-  const selectors = issues.map(issue => issue.button.selector);
-
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs[0]) {
-      chrome.tabs.sendMessage(tabs[0].id, {
-        action: 'highlightButtons',
-        selectors: selectors
-      });
-
-      // Toggle buttons
-      if (btn) btn.style.display = 'none';
-      if (clearBtn) clearBtn.style.display = 'block';
+    } catch (e) {
+      grid.innerHTML = `<div class="result-item fail">${e.message}</div>`;
+      resultsArea.style.display = 'block';
+      runBtn.disabled = false;
+      runBtn.innerHTML = originalText;
     }
   });
 }
 
-function clearButtonHighlights() {
-  const btn = document.getElementById('highlightAllButtonsBtn');
-  const clearBtn = document.getElementById('clearButtonHighlightsBtn');
+async function processButtonAnalyzeResults(summary, grid, btn, originalText) {
+  const buttons = summary.buttons;
+  
+  if (buttons.length === 0) {
+    grid.innerHTML = `<div class="result-item warning">No buttons found on this page.</div>`;
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+    return;
+  }
 
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs[0]) {
-      chrome.tabs.sendMessage(tabs[0].id, { action: 'clearButtonHighlight' });
+  // Reuse the redirect title fetching logic
+  const BATCH_SIZE = 5;
+  const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const currentUrlBase = activeTab.url.split('#')[0].split('?')[0];
 
-      // Toggle buttons
-      if (btn) btn.style.display = 'block';
-      if (clearBtn) clearBtn.style.display = 'none';
-    }
+  for (let i = 0; i < buttons.length; i += BATCH_SIZE) {
+    const batch = buttons.slice(i, i + BATCH_SIZE);
+    await Promise.all(batch.map(async (button) => {
+      // Basic check for should fetch (only if destination exists and is not current page anchor)
+      const dest = button.destination;
+      if (dest && !dest.startsWith('javascript:')) {
+        const linkBase = dest.split('#')[0].split('?')[0];
+        if (linkBase === currentUrlBase) {
+          button.destinationTitle = '(Current Page)';
+        } else {
+          try {
+            const res = await fetch(dest);
+            const text = await res.text();
+            const doc = new DOMParser().parseFromString(text, 'text/html');
+            button.destinationTitle = doc.querySelector('title')?.innerText.trim() || 'No Title Found';
+          } catch {
+            button.destinationTitle = '❌ Broken / Unreachable';
+          }
+        }
+      } else {
+        button.destinationTitle = 'Interaction / Static';
+      }
+    }));
+    btn.innerHTML = `⏳ ${Math.min(i + BATCH_SIZE, buttons.length)}/${buttons.length}`;
+  }
+
+  // Render results
+  grid.innerHTML = '';
+  buttons.forEach(button => {
+    const item = document.createElement('div');
+    item.className = 'result-item';
+    item.innerHTML = `
+      <div style="font-weight:600; font-size:11px;">"${escapeHtml(button.text)}"</div>
+      <div style="font-size:10px; color:var(--text-dim); margin-bottom:4px;">🔗 ${escapeHtml(button.destination || 'None')}</div>
+      <div class="result-meta ${button.destinationTitle.includes('❌') ? 'meta-danger' : 'meta-success'}" style="padding:4px 8px; border-radius:4px; font-size:10px;">
+        ${escapeHtml(button.destinationTitle)}
+      </div>
+    `;
+    grid.appendChild(item);
   });
+
+  btn.disabled = false;
+  btn.innerHTML = originalText;
 }
 
-// Initialize button action listeners (Running inside main DOMContentLoaded)
-const highlightAllBtn = document.getElementById('highlightAllButtonsBtn');
-const clearHighlightsBtn = document.getElementById('clearButtonHighlightsBtn');
-
-if (highlightAllBtn) highlightAllBtn.addEventListener('click', toggleHighlightAllButtons);
-if (clearHighlightsBtn) clearHighlightsBtn.addEventListener('click', clearButtonHighlights);
-// End button highlight coordination
 
 
 // ========== TAB 3: FONT AUDIT ==========
@@ -2019,8 +2011,6 @@ function splitTextIntoSections(text) {
         // We have a heading but no content yet. 
         // Maybe it was a multi-line heading? Or sub-heading?
         // Treat as content if we already have a heading?
-        // Or just replace heading?
-        // Let's assume it's part of content if we have a heading?
         // No, user said "Heading, Content".
         // Let's play it safe: If we have a heading, and this is ALSO short, maybe it's the start of content?
         // Let's assume everything else is content until next explict break?
@@ -2485,6 +2475,22 @@ async function analyzeLinksGeneric(btn, resultsArea, grid) {
       // Render
       grid.innerHTML = '';
 
+      links.forEach(link => {
+        const item = document.createElement('div');
+        item.className = 'result-item';
+        item.innerHTML = `
+          <div class="result-header">
+            <div class="result-label">${escapeHtml(link.label)}</div>
+            <div class="result-type">${link.element}</div>
+          </div>
+          <div class="result-meta ${link.destinationTitle && !link.destinationTitle.includes('❌') ? 'meta-success' : 'meta-danger'}">
+            <span class="meta-label">Title</span>
+            <span class="meta-value">${escapeHtml(link.destinationTitle || '...')}</span>
+          </div>
+        `;
+        grid.appendChild(item);
+      });
+
       // Ensure visibility
       resultsArea.style.display = 'block';
       grid.style.display = 'block';
@@ -2898,16 +2904,33 @@ function renderImageDownloadGrid(container, images) {
           </div>
         `;
 
-    item.querySelector('.download-img-btn').addEventListener('click', () => {
+    const checkbox = item.querySelector('.image-checkbox');
+    
+    // Toggle selection on whole card click
+    item.addEventListener('click', (e) => {
+      // Don't toggle if clicking download button
+      if (e.target.closest('.download-img-btn')) return;
+      
+      // If clicking checkbox directly, it handles itself, but we sync the card class
+      if (e.target !== checkbox) {
+        checkbox.checked = !checkbox.checked;
+      }
+      
+      item.classList.toggle('selected', checkbox.checked);
+      updateSelectionState();
+    });
+
+    checkbox.addEventListener('change', () => {
+      item.classList.toggle('selected', checkbox.checked);
+      updateSelectionState();
+    });
+
+    item.querySelector('.download-img-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
       chrome.downloads.download({
         url: img.src,
         filename: `image-${Date.now()}.png`
       });
-    });
-
-    const checkbox = item.querySelector('.image-checkbox');
-    checkbox.addEventListener('change', () => {
-      updateSelectionState();
     });
 
     container.appendChild(item);
@@ -3056,13 +3079,220 @@ function initializeColorExtractor() {
 }
 
 function initializeFeatures() {
-  // initializeContrastAnalyzer function was merged into analyzePage logic
-  initializeButtonAudit();
   initializeManualChecker();
   initializeThemeGenerator();
   initializeColorExtractor();
   initializeImageDownloader();
   initializeAltGenerator();
+  initializeButtonAuditFeature();
+  initializeButtonAnalyzeFeature();
+  initializeHyperlinkDetector();
+}
+
+function initializeHyperlinkDetector() {
+  const runBtn = document.getElementById('runHyperlinkAuditBtn');
+  const resultsArea = document.getElementById('hyperlinkResultsArea');
+  const grid = document.getElementById('hyperlinkGrid');
+  const highlightActions = document.getElementById('hyperlinkHighlightActions');
+  const highlightBtn = document.getElementById('highlightAllLinksBtn');
+  const clearBtn = document.getElementById('clearLinkHighlightsBtn');
+
+  if (runBtn) {
+    runBtn.addEventListener('click', () => {
+      runHyperlinkAuditGeneric(runBtn, resultsArea, grid, highlightActions);
+    });
+  }
+
+  if (highlightBtn) {
+    highlightBtn.addEventListener('click', async () => {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab) return;
+      
+      chrome.tabs.sendMessage(tab.id, { action: 'highlightLinks' }, (response) => {
+        if (response && response.success) {
+          highlightBtn.style.display = 'none';
+          clearBtn.style.display = 'block';
+        }
+      });
+    });
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', async () => {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab) return;
+      
+      chrome.tabs.sendMessage(tab.id, { action: 'clearLinkHighlights' }, (response) => {
+        if (response && response.success) {
+          highlightBtn.style.display = 'block';
+          clearBtn.style.display = 'none';
+        }
+      });
+    });
+  }
+
+  const deepBtn = document.getElementById('deepLinkScanBtn');
+  if (deepBtn) {
+    deepBtn.addEventListener('click', async () => {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab) return;
+      
+      // Save state and reload
+      await chrome.storage.local.set({ pendingLinkAudit: true });
+      chrome.tabs.reload(tab.id);
+    });
+  }
+}
+
+// Global Listener for Background-to-Sidepanel messages
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.action === 'linkAuditResults') {
+    const resultsArea = document.getElementById('hyperlinkResultsArea');
+    const grid = document.getElementById('hyperlinkGrid');
+    const highlightActions = document.getElementById('hyperlinkHighlightActions');
+    const highlightBtn = document.getElementById('highlightAllLinksBtn');
+    const clearBtn = document.getElementById('clearLinkHighlightsBtn');
+    const runBtn = document.getElementById('runHyperlinkAuditBtn');
+
+    if (resultsArea && grid && message.response.success) {
+      renderHyperlinkResults(message.response.links, grid, resultsArea, highlightActions);
+      if (highlightBtn) highlightBtn.style.display = 'none';
+      if (clearBtn) clearBtn.style.display = 'block';
+      if (runBtn) runBtn.disabled = false;
+    }
+  }
+});
+
+async function runHyperlinkAuditGeneric(btn, resultsArea, grid, highlightActions) {
+  if (!btn || !resultsArea || !grid) return;
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Scanning...';
+  grid.innerHTML = '<div style="padding:20px; text-align:center;">Scanning all hyperlinks...</div>';
+  resultsArea.style.display = 'block';
+  if (highlightActions) highlightActions.style.display = 'none';
+
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab || !tab.id) throw new Error("No active tab");
+
+    chrome.tabs.sendMessage(tab.id, { action: 'analyzeLinks' }, async (response) => {
+      if (chrome.runtime.lastError || !response || !response.success) {
+        grid.innerHTML = `<div style="padding:20px; text-align:center; color:var(--danger);">Analysis failed</div>`;
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        return;
+      }
+
+      renderHyperlinkResults(response.links, grid, resultsArea, highlightActions);
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    });
+  } catch (error) {
+    console.error('Audit Error:', error);
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  }
+}
+
+function renderHyperlinkResults(links, grid, resultsArea, highlightActions, btn = null, originalButtonText = "") {
+  if (highlightActions) highlightActions.style.display = 'flex';
+  
+  if (!links || links.length === 0) {
+    grid.innerHTML = '<div style="padding:20px; text-align:center;">No links found.</div>';
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalButtonText;
+    }
+    return;
+  }
+
+  // We perform title fetching in an async wrapper to not block the main flow
+  (async () => {
+    const BATCH_SIZE = 5;
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!activeTab) return;
+    const currentUrlBase = activeTab.url.split('#')[0].split('?')[0];
+
+    for (let i = 0; i < links.length; i += BATCH_SIZE) {
+      const batch = links.slice(i, i + BATCH_SIZE);
+      
+      if (btn) btn.innerHTML = `⏳ Titles ${Math.min(i + BATCH_SIZE, links.length)}/${links.length}`;
+
+      await Promise.all(batch.map(async (link) => {
+        if (link.shouldFetch) {
+          const linkBase = (link.url || '').split('#')[0].split('?')[0];
+          if (linkBase === currentUrlBase) {
+            try {
+               const currentTitle = await chrome.scripting.executeScript({
+                target: { tabId: activeTab.id },
+                func: () => document.title
+              });
+              link.destinationTitle = `(Current Page) ${currentTitle[0].result}`;
+            } catch { link.destinationTitle = '(Current Page)'; }
+            return;
+          }
+
+          try {
+            const res = await fetch(link.url);
+            if (!res.ok) throw new Error();
+            const text = await res.text();
+            const doc = new DOMParser().parseFromString(text, 'text/html');
+            link.destinationTitle = doc.querySelector('title')?.innerText.trim() || 'No Title Found';
+          } catch { 
+            link.destinationTitle = '❌ Broken / Not Found / Protected'; 
+          }
+        } else {
+          if (link.url && link.url.startsWith('#')) {
+            link.destinationTitle = '(Anchor: ' + link.url + ')';
+          } else {
+            link.destinationTitle = 'Interaction / JS';
+          }
+        }
+      }));
+
+      // Render partial results to show progress
+      renderCardsToGrid(links.slice(0, i + BATCH_SIZE), grid);
+    }
+
+    if (btn) {
+      btn.innerHTML = originalButtonText;
+      btn.disabled = false;
+    }
+  })();
+}
+
+function renderCardsToGrid(links, grid) {
+  grid.innerHTML = '';
+  links.forEach(link => {
+    const item = document.createElement('div');
+    item.className = 'result-item';
+    item.style.padding = '8px';
+    item.style.gap = '6px';
+    item.innerHTML = `
+      <div class="result-header" style="margin-bottom: 2px;">
+        <div class="result-label" style="font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          ${escapeHtml(link.label || '[No Text]')}
+        </div>
+      </div>
+      <div style="font-size: 10px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+        <strong>🔗 URL:</strong> ${escapeHtml(link.url || '#')}
+      </div>
+      <div class="result-meta ${link.destinationTitle && !link.destinationTitle.includes('❌') ? 'meta-success' : 'meta-danger'}" style="padding: 4px 8px; border-radius: 4px; background: rgba(255,255,255,0.02)">
+        <div style="font-size: 11px; color: var(--text-main); font-weight: 500;">
+          ${escapeHtml(link.destinationTitle || 'Fetching...')}
+        </div>
+      </div>
+    `;
+    grid.appendChild(item);
+  });
+}
+
+function initializeLoremDetector() {
+  const runLoremBtn = document.getElementById('runLoremAuditBtn');
+  if (runLoremBtn) {
+    runLoremBtn.addEventListener('click', () => runSpecificContentAudit('lorem'));
+  }
 }
 
 function initializeAltGenerator() {

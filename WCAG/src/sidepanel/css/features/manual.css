@@ -1,137 +1,186 @@
 /* SiteLens - Manual Checker Feature Styles */
 
 #manualTab .manual-results {
-    margin-top: 24px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 24px;
+    margin-top: 20px;
+    background: #0f172a; /* Fallback for bg-surface */
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px; /* Even softer, cuter corners */
+    padding: 18px;
     animation: fadeSlideUp 0.3s ease;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    backdrop-filter: blur(12px);
+}
+
+#manualTab .color-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+#manualTab .color-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+#manualTab input[type="color"] {
+    width: 48px;
+    height: 40px;
+    padding: 0;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    background: transparent;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+#manualTab input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+#manualTab input[type="color"]::-webkit-color-swatch {
+    border: none;
+    border-radius: 8px;
+}
+
+#manualTab input[type="text"] {
+    flex: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+#manualTab .preview-box {
+    margin-top: 8px;
+    height: 50px; /* Slightly shorter */
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: #000;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    color: white; /* Will use white for now, can be improved with contrast check */
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    letter-spacing: 0.1em;
+    margin-bottom: 2px;
 }
 
 #manualTab .ratio-display {
     text-align: center;
-    margin-bottom: 24px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px dashed rgba(255,255,255,0.1);
 }
 
 #manualTab .ratio-value {
     font-family: 'Outfit', sans-serif;
-    font-size: 56px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+    font-size: 36px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff 0%, #818cf8 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     line-height: 1;
-    margin-bottom: 8px;
-    filter: drop-shadow(0 4px 12px rgba(255, 255, 255, 0.1));
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
 }
 
 #manualTab .ratio-label {
-    font-size: 11px;
-    color: var(--primary);
+    font-size: 10px;
+    color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.2em;
-    font-weight: 600;
+    letter-spacing: 0.15em;
+    font-weight: 700;
 }
 
 #manualTab .compliance-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    margin-bottom: 24px;
+    gap: 10px;
+    margin-bottom: 20px;
 }
 
 #manualTab .compliance-box {
     background: rgba(255, 255, 255, 0.02);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 14px;
+    padding: 12px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-#manualTab .compliance-box:hover {
-    transform: translateY(-2px);
+    gap: 10px;
+    transition: all 0.2s ease;
 }
 
 #manualTab .compliance-box.pass {
-    border-color: var(--success);
     background: rgba(16, 185, 129, 0.1);
-    box-shadow: 0 4px 12px -2px rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.2);
 }
 
 #manualTab .compliance-box.fail {
-    border-color: var(--danger);
     background: rgba(239, 68, 68, 0.1);
-    box-shadow: 0 4px 12px -2px rgba(239, 68, 68, 0.15);
-    opacity: 0.8;
+    border-color: rgba(239, 68, 68, 0.2);
 }
 
 #manualTab .compliance-icon {
-    font-size: 16px;
-    width: 28px;
-    height: 28px;
+    font-size: 11px;
+    width: 22px;
+    height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
+    border-radius: 8px;
     flex-shrink: 0;
 }
 
 #manualTab .compliance-box.pass .compliance-icon {
-    color: #fff;
     background: var(--success);
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+    color: white;
 }
 
 #manualTab .compliance-box.fail .compliance-icon {
-    color: #fff;
     background: var(--danger);
-    box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
-}
-
-#manualTab .compliance-text {
-    display: flex;
-    flex-direction: column;
+    color: white;
 }
 
 #manualTab .compliance-name {
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 700;
     color: var(--text-main);
 }
 
 #manualTab .compliance-req {
-    font-size: 10px;
+    font-size: 9px;
     color: var(--text-muted);
-    margin-top: 2px;
 }
 
 #manualTab .sample-preview {
-    background: var(--bg-main);
-    padding: 24px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.25);
+    padding: 14px;
+    border-radius: 16px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    text-align: center;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+    gap: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 #manualTab .sample-text {
-    padding: 16px;
-    border-radius: 6px;
-    transition: all 0.3s;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
 }
 
 #manualTab .sample-text.large {
-    font-size: 24px;
-    font-weight: 700;
+    font-size: 18px;
+    font-weight: 800;
 }

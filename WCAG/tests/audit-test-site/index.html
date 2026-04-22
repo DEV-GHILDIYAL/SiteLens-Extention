@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiteLens Audit Hub | Premium Web Solutions</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Intentionally missing meta description for SEO audit -->
+</head>
+<body>
+    <header class="sticky-header">
+        <nav class="navbar">
+            <div class="logo">SiteLens<span>Hub</span></div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li class="has-megamenu">
+                    <a href="about.html">About Us</a>
+                    <div class="megamenu">
+                        <div class="megamenu-content">
+                            <div class="megamenu-card">
+                                <h3>FAQ</h3>
+                                <p>Common questions answered.</p>
+                                <a href="faq.html" class="card-link">View FAQ</a>
+                            </div>
+                            <div class="megamenu-card">
+                                <h3>Service Area</h3>
+                                <p>Where we operate globally.</p>
+                                <a href="services-hub.html" class="card-link">Our Reach</a>
+                            </div>
+                            <div class="megamenu-card">
+                                <h3>Reviews</h3>
+                                <p>What clients say about us.</p>
+                                <a href="reviews.html" class="card-link">Read Reviews</a>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+                <li class="has-megamenu">
+                    <a href="services-hub.html">Services</a>
+                    <div class="megamenu">
+                        <div class="megamenu-content">
+                            <div class="megamenu-card">
+                                <h3>SEO Audit</h3>
+                                <p>Boost your search ranking.</p>
+                                <a href="services/seo-audit.html" class="card-link">Learn More</a>
+                            </div>
+                            <div class="megamenu-card">
+                                <h3>Accessibility</h3>
+                                <p>Inclusive design for all.</p>
+                                <a href="services/accessibility-fix.html" class="card-link">Learn More</a>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="hero-content">
+                <h1>Leading the Future of Web Audits</h1>
+                <!-- ISSUE: Duplicate H1 for SEO Audit -->
+                <h1 style="display:none">Web Performance Expert</h1>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+                <div class="hero-btns">
+                    <a href="#services" class="btn btn-primary">Our Expertise</a>
+                    <a href="non-existent.html" class="btn btn-secondary">Broken Link Test</a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <!-- ISSUE: Missing alt tag -->
+                <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80">
+            </div>
+        </section>
+
+        <section class="content-test" id="services">
+            <h2>Our Core Mission</h2>
+            <div class="grid">
+                <div class="card">
+                    <h3>Visual Precision</h3>
+                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                </div>
+                <div class="card">
+                    <h3>WCAG Compliance</h3>
+                    <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.</p>
+                </div>
+                <div class="card">
+                    <h3>Performance</h3>
+                    <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam.</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- ISSUE: Low contrast section -->
+        <section class="low-contrast-section" style="background: #fff; color: #a0a0a0; padding: 40px; text-align: center;">
+            <h2>Low Contrast Audit Test</h2>
+            <p>This text is intentionally hard to read to trigger the SiteLens Contrast Analyzer. It uses #a0a0a0 on a white background.</p>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 SiteLens Hub. All rights reserved.</p>
+    </footer>
+</body>
+</html>

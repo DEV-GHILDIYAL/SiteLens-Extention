@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us | SiteLens Hub</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="sticky-header">
+        <nav class="navbar">
+            <div class="logo">SiteLens<span>Hub</span></div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li class="has-megamenu">
+                    <a href="about.html">About Us</a>
+                    <div class="megamenu">
+                        <div class="megamenu-content">
+                            <div class="megamenu-card">
+                                <h3>FAQ</h3>
+                                <p>Common questions answered.</p>
+                                <a href="faq.html" class="card-link">View FAQ</a>
+                            </div>
+                            <div class="megamenu-card">
+                                <h3>Service Area</h3>
+                                <p>Where we operate globally.</p>
+                                <a href="services-hub.html" class="card-link">Our Reach</a>
+                            </div>
+                            <div class="megamenu-card">
+                                <h3>Reviews</h3>
+                                <p>What clients say about us.</p>
+                                <a href="reviews.html" class="card-link">Read Reviews</a>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+                <li class="has-megamenu">
+                    <a href="services-hub.html">Services</a>
+                    <div class="megamenu">
+                        <div class="megamenu-content">
+                            <div class="megamenu-card">
+                                <h3>SEO Audit</h3>
+                                <p>Boost your search ranking.</p>
+                                <a href="services/seo-audit.html" class="card-link">Learn More</a>
+                            </div>
+                            <div class="megamenu-card">
+                                <h3>Accessibility</h3>
+                                <p>Inclusive design for all.</p>
+                                <a href="services/accessibility-fix.html" class="card-link">Learn More</a>
+                            </div>
+                        </div>
+                    </div>
+                </li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="contact-form">
+            <h1>Get In Touch</h1>
+            <p>Ready to audit your site? Drop us a message.</p>
+            
+            <form style="max-width: 500px; margin-top: 30px;">
+                <div style="margin-bottom: 20px;">
+                    <label style="display:block; margin-bottom: 8px;">Name</label>
+                    <input type="text" placeholder="Your Name" style="width:100%; padding: 12px; background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white;">
+                </div>
+                <!-- ISSUE: Missing label for accessibility audit -->
+                <div style="margin-bottom: 20px;">
+                    <input type="email" placeholder="Your Email (No Label Test)" style="width:100%; padding: 12px; background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white;">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display:block; margin-bottom: 8px;">Message</label>
+                    <textarea placeholder="How can we help?" style="width:100%; padding: 12px; background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; min-height: 150px;"></textarea>
+                </div>
+                <!-- ISSUE: Tiny button for touch target audit -->
+                <button type="submit" style="width: 30px; height: 30px; background: var(--primary); border: none; color: white; border-radius: 4px; cursor: pointer;">Go</button>
+                <span style="font-size: 12px; color: var(--text-muted); margin-left: 10px;">(Tiny button for touch-target test)</span>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 SiteLens Hub. All rights reserved.</p>
+    </footer>
+</body>
+</html>

@@ -10,7 +10,7 @@ const ButtonAnalyzer = {
     /**
      * Analyze entire page for button issues
      */
-    async analyzePage() {
+    async analyzePage(mode) {
         if (this.isAnalyzing) {
             console.log('Button analysis already in progress');
             return this.getSummary();
@@ -20,7 +20,8 @@ const ButtonAnalyzer = {
         this.results = {
             buttons: [],
             capitalizationIssues: [],
-            destinationIssues: []
+            destinationIssues: [],
+            colorIssues: []
         };
 
         try {
@@ -52,6 +53,7 @@ const ButtonAnalyzer = {
                     text: text,
                     destination: destination,
                     type: buttonType,
+                    tagName: element.tagName.toLowerCase(),
                     location: this.getElementLocation(element),
                     selector: this.generateSelector(element)
                 };
@@ -59,17 +61,25 @@ const ButtonAnalyzer = {
                 this.results.buttons.push(button);
             }
 
-            // Validate buttons
-            this.validateButtons();
+            // Filter validation based on mode
+            if (mode === 'audit') {
+                this.checkCapitalizationConsistency();
+                await this.checkColorCompliance();
+            } else if (mode === 'analyze') {
+                this.checkDestinationMismatches();
+            } else {
+                // Default: Do both (legacy or internal)
+                this.checkCapitalizationConsistency();
+                await this.checkColorCompliance();
+                this.checkDestinationMismatches();
+            }
 
             const summary = this.getSummary();
-            console.log('✅ Button audit complete!');
-            console.log('📊 Results:', summary);
-
+            console.log(`✅ Button ${mode || 'audit'} complete!`);
             return summary;
 
         } catch (error) {
-            console.error('❌ Button audit failed:', error);
+            console.error('❌ Button analysis failed:', error);
             return this.getSummary();
         } finally {
             this.isAnalyzing = false;
@@ -172,18 +182,31 @@ const ButtonAnalyzer = {
     },
 
     /**
-     * Validate all buttons
+     * Check color compliance (contrast) for all buttons
      */
-    validateButtons() {
-        if (this.results.buttons.length === 0) {
-            return;
+    async checkColorCompliance() {
+        if (typeof ContrastAnalyzer === 'undefined') return;
+
+        for (const button of this.results.buttons) {
+            try {
+                const violation = await ContrastAnalyzer.analyzeTextElement({
+                    element: button.element,
+                    text: button.text
+                });
+
+                if (violation) {
+                    this.results.colorIssues.push({
+                        button: button,
+                        contrastRatio: violation.contrastRatio,
+                        textColor: violation.textColor,
+                        backgroundColor: violation.backgroundColor,
+                        message: `Low contrast: ${violation.contrastRatio.toFixed(2)}:1 (Min 4.5:1)`
+                    });
+                }
+            } catch (e) {
+                console.warn('Button color check error:', e);
+            }
         }
-
-        // Check capitalization consistency
-        this.checkCapitalizationConsistency();
-
-        // Check for destination mismatches
-        this.checkDestinationMismatches();
     },
 
     /**
@@ -365,13 +388,19 @@ const ButtonAnalyzer = {
             buttons: this.results.buttons,
             capitalizationIssues: this.results.capitalizationIssues,
             destinationIssues: this.results.destinationIssues,
+            colorIssues: this.results.colorIssues || [],
             stats: {
                 total: this.results.buttons.length,
                 capitalizationIssues: this.results.capitalizationIssues.length,
+                colorIssues: this.results.colorIssues.length,
                 destinationIssues: this.results.destinationIssues.length,
-                totalIssues: this.results.capitalizationIssues.length + this.results.destinationIssues.length
+                totalIssues: this.results.capitalizationIssues.length + 
+                             this.results.colorIssues.length + 
+                             this.results.destinationIssues.length
             },
-            isValid: (this.results.capitalizationIssues.length === 0 && this.results.destinationIssues.length === 0)
+            isValid: (this.results.capitalizationIssues.length === 0 && 
+                      this.results.colorIssues.length === 0 && 
+                      this.results.destinationIssues.length === 0)
         };
     },
 

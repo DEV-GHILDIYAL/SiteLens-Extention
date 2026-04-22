@@ -12,11 +12,13 @@
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
-    padding: 12px;
+    padding: 8px; /* Reduced from 10px */
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px; /* Reduced gap */
     transition: all 0.2s ease;
+    width: 100%;
+    min-width: 0; /* Critical for flex overflow */
 }
 
 .result-item:hover {
@@ -37,7 +39,7 @@
 .result-label {
     color: var(--text-main);
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px; /* Reduced from 14px */
     letter-spacing: 0.2px;
 }
 
@@ -121,9 +123,9 @@
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
     color: var(--text-muted);
-    padding: 6px 16px;
+    padding: 4px 12px; /* Reduced padding */
     border-radius: 20px;
-    font-size: 12px;
+    font-size: 11px; /* Reduced from 12px */
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -145,11 +147,12 @@
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    padding: 16px;
+    padding: 10px; /* Reduced from 16px */
     margin-bottom: 12px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+    width: 100%;
 }
 
 .tool-icon {

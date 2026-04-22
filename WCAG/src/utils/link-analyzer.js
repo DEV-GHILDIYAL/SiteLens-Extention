@@ -11,33 +11,25 @@ const LinkAnalyzer = {
         console.log('🔗 Starting Deep Link Analysis...');
         const uniqueLinks = new Map();
 
-        // 1. Helper to add valid URL to map
         const addLink = (url, sourceElement, label = '', type = 'link') => {
-            // Basic cleaning
             let cleanUrl = null;
             if (url && typeof url === 'string') {
                 try {
+                    // Try to make relative URLs absolute
                     cleanUrl = new URL(url.trim(), window.location.href).href;
                 } catch (e) {
-                    // If it's not a valid absolute URL, keep the original if it looks like a relative path or javascript
                     cleanUrl = url.trim();
                 }
 
-                // Filter out non-http(s) ONLY if it's supposed to be a link
-                // If it's a button, we might accept null, but if a URL IS provided, we want it to be valid?
-                // Actually, for button audit, we want everything interactive.
-                if (cleanUrl && !cleanUrl.startsWith('http') && type === 'anchor') return;
-
-                if (cleanUrl && (cleanUrl.includes('javascript:') || cleanUrl.includes('mailto:') || cleanUrl.includes('tel:'))) cleanUrl = null;
+                // Filter out non-web interactions but keep anchors
+                if (cleanUrl && (cleanUrl.includes('javascript:') || cleanUrl.includes('mailto:') || cleanUrl.includes('tel:'))) {
+                    cleanUrl = null;
+                }
             }
 
             // Skip if no URL and not a button/interactive element
             if (!cleanUrl && !['button', 'form', 'clickable'].includes(type) && !sourceElement) return;
 
-            // Unique Key
-            // If URL exists, use it. If not, use a unique identifier for the element if possible, or random.
-            // Since we re-scan, random keys mean duplicates on re-scan?
-            // No, 'uniqueLinks' is per-scan.
             let key = cleanUrl;
             if (!key) {
                 // Fallback key: Use element signature or random
@@ -48,12 +40,18 @@ const LinkAnalyzer = {
                 // Determine label if missing
                 let finalLabel = label;
                 if (!finalLabel && sourceElement) {
-                    finalLabel = sourceElement.innerText?.trim() ||
-                        sourceElement.getAttribute('aria-label') ||
-                        sourceElement.getAttribute('title') ||
-                        sourceElement.name ||
-                        sourceElement.value ||
-                        '[No Label]';
+                    // Check for image inside anchor
+                    const img = sourceElement.querySelector('img');
+                    if (img && !sourceElement.innerText.trim()) {
+                        finalLabel = `[Image: ${img.alt || img.src.split('/').pop() || 'Unlabeled'}]`;
+                    } else {
+                        finalLabel = sourceElement.innerText?.trim() ||
+                            sourceElement.getAttribute('aria-label') ||
+                            sourceElement.getAttribute('title') ||
+                            sourceElement.name ||
+                            sourceElement.value ||
+                            '[No Label]';
+                    }
                 }
 
                 uniqueLinks.set(key, {

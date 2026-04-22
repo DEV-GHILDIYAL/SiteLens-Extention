@@ -2,7 +2,7 @@
 
 .tab-content {
     display: none;
-    padding: 24px;
+    padding: 16px 4px; /* Reduced from 24px */
     animation: fadeSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -18,10 +18,13 @@
     padding-bottom: 20px;
 }
 
-@media (max-width: 400px) {
+@media (max-width: 320px) {
     .features-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr); /* 2 columns at very small widths */
         gap: 8px;
+    }
+    .page-title {
+        font-size: 18px;
     }
 }
 
@@ -31,7 +34,7 @@
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: var(--radius-lg);
-    padding: 16px 8px;
+    padding: 12px 6px; /* Reduced padding */
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
@@ -40,8 +43,8 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    gap: 12px;
-    aspect-ratio: 1;
+    gap: 8px; /* Reduced gap */
+    min-height: 90px; /* Use min-height instead of fixed aspect ratio */
 }
 
 .feature-card::after {

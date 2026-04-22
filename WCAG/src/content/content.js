@@ -49,6 +49,45 @@
 			z-index: 10000 !important;
 			border-radius: 4px !important;
 		}
+
+		.wcag-link-highlight {
+			outline: 2px dashed #6366f1 !important;
+			outline-offset: 2px !important;
+			background-color: rgba(99, 102, 241, 0.1) !important;
+			transition: all 0.2s ease !important;
+			cursor: help !important;
+		}
+
+		.wcag-link-highlight:hover {
+			outline: 2px solid #6366f1 !important;
+			background-color: rgba(99, 102, 241, 0.2) !important;
+		}
+
+		.wcag-link-tooltip {
+			position: fixed !important;
+			z-index: 2147483647 !important;
+			background: #1e1e2e !important;
+			color: #cdd6f4 !important;
+			padding: 8px 12px !important;
+			border-radius: 8px !important;
+			font-size: 12px !important;
+			font-family: 'Outfit', 'Inter', sans-serif !important;
+			box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+			border: 1px solid rgba(255, 255, 255, 0.1) !important;
+			pointer-events: none !important;
+			max-width: 300px !important;
+			word-break: break-all !important;
+			display: none;
+			opacity: 0;
+			transform: translateY(10px);
+			transition: opacity 0.2s, transform 0.2s !important;
+		}
+
+		.wcag-link-tooltip.visible {
+			display: block;
+			opacity: 1;
+			transform: translateY(0);
+		}
 	`;
 		document.head.appendChild(highlightCss);
 
@@ -67,7 +106,16 @@
 				case 'analyzeFonts':
 					handleFontAnalysis(sendResponse);
 					return true;
+				case 'analyzeButtonAudit':
+					console.log('✅ Content script: Handling analyzeButtonAudit');
+					handleButtonAudit(sendResponse);
+					return true;
+				case 'analyzeButtonAnalyze':
+					console.log('✅ Content script: Handling analyzeButtonAnalyze');
+					handleButtonAnalyze(sendResponse);
+					return true;
 				case 'analyzeButtons':
+					console.log('✅ Content script: Handling legacy analyzeButtons');
 					handleButtonAnalysis(sendResponse);
 					return true;
 				case 'analyzeImages':
@@ -83,7 +131,7 @@
 					handleContentAnalysis(request, sendResponse);
 					return true;
 				case 'analyzeLinks':
-					handleLinkAnalysis(sendResponse);
+					handleLinkAnalysis(sendResponse, request.deepScan || false);
 					return true;
 				case 'highlightButton':
 					handleHighlightButton(request, sendResponse);
@@ -147,6 +195,12 @@
 				case 'extractAllImages':
 					const extractedImages = ImageAnalyzer.extractAllImages();
 					sendResponse({ success: true, images: extractedImages });
+					return true;
+				case 'highlightLinks':
+					handleHighlightLinks(sendResponse);
+					return true;
+				case 'clearLinkHighlights':
+					handleClearLinkHighlights(sendResponse);
 					return true;
 				default:
 					sendResponse({ success: false, error: 'Unknown action: ' + request.action });
@@ -324,14 +378,15 @@
 				// 2. Button Audit
 				if (options.buttons) {
 					const btnSummary = await ButtonAnalyzer.analyzePage();
-					if (btnSummary.issues && btnSummary.issues.length > 0) {
-						const btnViolations = btnSummary.issues.map(issue => ({
+					const issues = [...(btnSummary.capitalizationIssues || []), ...(btnSummary.destinationIssues || [])];
+					if (issues.length > 0) {
+						const btnViolations = issues.map(issue => ({
 							type: 'button',
 							category: 'button',
 							message: issue.message,
-							context: issue.text || 'Button',
-							selector: issue.selector,
-							element: issue.element
+							context: issue.button.text || 'Button',
+							selector: issue.button.selector,
+							element: issue.button.element
 						}));
 						allViolations = [...allViolations, ...btnViolations];
 						fullSummary.byCategory.button = (fullSummary.byCategory.button || 0) + btnViolations.length;
@@ -440,7 +495,31 @@
 		}
 
 		/**
-		* Handle button analysis request
+		* Handle button audit request (Casing + Color)
+		*/
+		async function handleButtonAudit(sendResponse) {
+			try {
+				const summary = await ButtonAnalyzer.analyzePage('audit');
+				sendResponse({ success: true, summary: summary });
+			} catch (error) {
+				sendResponse({ success: false, error: error.message });
+			}
+		}
+
+		/**
+		* Handle button analyze request (Destinations)
+		*/
+		async function handleButtonAnalyze(sendResponse) {
+			try {
+				const summary = await ButtonAnalyzer.analyzePage('analyze');
+				sendResponse({ success: true, summary: summary });
+			} catch (error) {
+				sendResponse({ success: false, error: error.message });
+			}
+		}
+
+		/**
+		* Handle button analysis request (Legacy/All)
 		*/
 		async function handleButtonAnalysis(sendResponse) {
 			try {
@@ -569,8 +648,16 @@
 		/**
 		* Handle link analysis request
 		*/
-		async function handleLinkAnalysis(sendResponse) {
+		/**
+		* Handle link analysis request (Modified for Deep Scan)
+		*/
+		async function handleLinkAnalysis(sendResponse, autoScroll = false) {
 			try {
+				if (autoScroll) {
+					console.log('🚀 Starting Deep Scan auto-scroll...');
+					await autoScrollPage();
+				}
+
 				console.log('Starting link audit...');
 				const links = LinkAnalyzer.extractLinks();
 				sendResponse({
@@ -584,6 +671,38 @@
 				} else {
 					sendResponse({ success: false, error: error.message });
 				}
+			}
+		}
+
+		/**
+		 * Reusable Auto-Scroll Utility for Deep Scanning
+		 */
+		async function autoScrollPage() {
+			const originalScrollY = window.scrollY;
+			const scrollNotice = document.createElement('div');
+			scrollNotice.style.cssText = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#1e1e2e; color:#cdd6f4; padding:12px 24px; border-radius:30px; z-index:2147483647; font-family:sans-serif; font-size:14px; font-weight:700; pointer-events:none; border:2px solid #6366f1; box-shadow: 0 10px 40px rgba(0,0,0,0.6);';
+			scrollNotice.innerHTML = '🔄 <span style="color:#6366f1;">SiteLens:</span> Loading deep content...';
+			document.body.appendChild(scrollNotice);
+
+			try {
+				let lastHeight = 0;
+				let currentHeight = document.documentElement.scrollHeight;
+				let attempts = 0;
+				const maxAttempts = 20;
+
+				while (lastHeight < currentHeight && attempts < maxAttempts) {
+					lastHeight = currentHeight;
+					window.scrollTo(0, currentHeight);
+					await new Promise(r => setTimeout(r, 800)); // Moderate pace for accuracy
+					currentHeight = document.documentElement.scrollHeight;
+					attempts++;
+				}
+				
+				// Smooth scroll back to top
+				window.scrollTo({ top: 0, behavior: 'smooth' });
+				await new Promise(r => setTimeout(r, 1000));
+			} finally {
+				if (scrollNotice.parentNode) scrollNotice.remove();
 			}
 		}
 
@@ -1018,29 +1137,20 @@
 		 */
 		function handleHighlightImage(request, sendResponse) {
 			try {
-				// Find image by selector or index
 				let img;
 				if (request.selector) {
 					img = document.querySelector(request.selector);
 				}
 
-				// Fallback to searching by src/index if selector fails or is generic
 				if (!img && request.src) {
 					const images = document.querySelectorAll('img');
 					img = Array.from(images).find(i => i.src === request.src);
-				}
-
-				if (!img && typeof request.elementIndex === 'number') {
-					img = document.querySelectorAll('img')[request.elementIndex];
 				}
 
 				if (!img) {
 					sendResponse({ success: false, error: 'Image not found' });
 					return;
 				}
-
-				// Remove existing highlights
-				document.querySelectorAll('.wcag-image-highlight').forEach(el => el.remove());
 
 				const rect = img.getBoundingClientRect();
 
@@ -1066,7 +1176,7 @@
 					behavior: 'smooth'
 				});
 
-				// Remove after 3 seconds
+				// Remove after 5 seconds
 				setTimeout(() => {
 					overlay.remove();
 				}, 5000);
@@ -1075,6 +1185,67 @@
 			} catch (error) {
 				sendResponse({ success: false, error: error.message });
 			}
+		}
+
+		let currentTooltip = null;
+
+		function handleHighlightLinks(sendResponse) {
+			const links = document.querySelectorAll('a');
+			
+			// Create tooltip if not exists
+			if (!currentTooltip) {
+				currentTooltip = document.createElement('div');
+				currentTooltip.className = 'wcag-link-tooltip';
+				document.body.appendChild(currentTooltip);
+			}
+
+			links.forEach(link => {
+				link.classList.add('wcag-link-highlight');
+				
+				const showTooltip = (e) => {
+					currentTooltip.textContent = `Destination: ${link.href}`;
+					currentTooltip.classList.add('visible');
+					
+					const updatePos = (ev) => {
+						const x = ev.clientX + 15;
+						const y = ev.clientY + 15;
+						currentTooltip.style.left = `${x}px`;
+						currentTooltip.style.top = `${y}px`;
+					};
+					
+					updatePos(e);
+					link.addEventListener('mousemove', updatePos);
+				};
+
+				const hideTooltip = () => {
+					currentTooltip.classList.remove('visible');
+				};
+
+				link.addEventListener('mouseenter', showTooltip);
+				link.addEventListener('mouseleave', hideTooltip);
+				
+				// Store references for cleanup
+				link._wcagShow = showTooltip;
+				link._wcagHide = hideTooltip;
+			});
+
+			sendResponse({ success: true });
+		}
+
+		function handleClearLinkHighlights(sendResponse) {
+			const links = document.querySelectorAll('a');
+			links.forEach(link => {
+				link.classList.remove('wcag-link-highlight');
+				if (link._wcagShow) link.removeEventListener('mouseenter', link._wcagShow);
+				if (link._wcagHide) link.removeEventListener('mouseleave', link._wcagHide);
+			});
+
+			if (currentTooltip && currentTooltip.parentNode) {
+				currentTooltip.parentNode.removeChild(currentTooltip);
+				currentTooltip = null;
+			}
+
+			sendResponse({ success: true });
 		}
 
 		/**
@@ -1356,15 +1527,37 @@
 		// Auto-check for pending tasks on load (Persistence Flow)
 		(async function checkPending() {
 			try {
-				const data = await new Promise(resolve => chrome.storage.local.get(['pendingContentCheck', 'sourceLines'], resolve));
+				// Check for content diff
+				const data = await new Promise(resolve => chrome.storage.local.get(['pendingContentCheck', 'sourceLines', 'pendingLinkAudit'], resolve));
+				
 				if (data && data.pendingContentCheck && data.sourceLines) {
 					console.log('🚀 Resuming pending content check post-reload...');
-					// Small buffer to let the page settle
-					await new Promise(r => setTimeout(r, 1000));
+					await new Promise(r => setTimeout(r, 500));
 					const results = await handleHighlightContentDiff({ sourceLines: data.sourceLines });
 					chrome.runtime.sendMessage({ action: 'contentCheckResults', results });
 					chrome.storage.local.remove(['pendingContentCheck', 'sourceLines']);
 				}
+
+				// Resume Link Audit
+				if (data && data.pendingLinkAudit) {
+					console.log('🚀 Resuming pending Link Audit post-reload...');
+					// Clear flag first to prevent loops
+					await chrome.storage.local.remove(['pendingLinkAudit']);
+					
+					// Small buffer
+					await new Promise(r => setTimeout(r, 800));
+					
+					// Perform Deep Scan
+					handleLinkAnalysis((response) => {
+						if (response && response.success) {
+							// Trigger auto-highlight
+							handleHighlightLinks(() => {});
+							// Send results back to sidepanel
+							chrome.runtime.sendMessage({ action: 'linkAuditResults', response });
+						}
+					}, true); // Always deep scan on resume
+				}
+
 			} catch (e) {
 				console.error('Pending check failed:', e);
 			}

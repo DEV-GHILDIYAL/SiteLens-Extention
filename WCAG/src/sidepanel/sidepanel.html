@@ -37,12 +37,6 @@
                         <p class="feature-card-desc">Check color contrast ratios for WCAG compliance</p>
                     </div>
 
-                    <!-- Button Audit -->
-                    <div class="feature-card" data-feature="buttons">
-                        <div class="feature-card-icon">🔘</div>
-                        <h3 class="feature-card-title">Button Audit</h3>
-                        <p class="feature-card-desc">Analyze button destinations and capitalization</p>
-                    </div>
 
                     <!-- Font Audit -->
                     <div class="feature-card" data-feature="fonts">
@@ -97,18 +91,32 @@
 
                     <!-- Content Checker -->
                     <div class="feature-card" data-feature="content">
-                        <div class="feature-card-icon">📝</div>
+                        <div class="feature-card-icon">📄</div>
                         <h3 class="feature-card-title">Content Checker</h3>
                         <p class="feature-card-desc">Verify text content against page</p>
                     </div>
 
                     <!-- Multi-Page Crawler -->
 
-                    <!-- Link Purpose -->
-                    <div class="feature-card" data-feature="links">
+                    <!-- NEW: Button Audit -->
+                    <div class="feature-card" data-feature="buttonAudit">
+                        <div class="feature-card-icon">📝</div>
+                        <h3 class="feature-card-title">Button Audit</h3>
+                        <p class="feature-card-desc">Check casing & color compliance.</p>
+                    </div>
+
+                    <!-- NEW: Button Analyze -->
+                    <div class="feature-card" data-feature="buttonAnalyze">
                         <div class="feature-card-icon">🔗</div>
-                        <h3 class="feature-card-title">Button Analyzer</h3>
-                        <p class="feature-card-desc">Check button destinations (Titles)</p>
+                        <h3 class="feature-card-title">Button Analyze</h3>
+                        <p class="feature-card-desc">Verify button targets & titles.</p>
+                    </div>
+
+                    <!-- Link Detector -->
+                    <div class="feature-card" data-feature="hyperlinks">
+                        <div class="feature-card-icon">⚡</div>
+                        <h3 class="feature-card-title">Link Detector</h3>
+                        <p class="feature-card-desc">Audit all page links & titles.</p>
                     </div>
 
                     <!-- Content Splitter (New) -->
@@ -568,26 +576,71 @@
             </div>
         </div>
 
-        <!-- TAB: LINK CHECKER (Updated Description) -->
-        <div class="tab-content" id="linksTab">
+        <!-- NEW TAB: BUTTON AUDIT -->
+        <div class="tab-content" id="buttonAuditTab">
             <div class="content-section">
-                <h2 class="page-title">🔗 Button & Link Audit</h2>
-                <p class="helper-text">List all buttons and their destination page titles.</p>
+                <h2 class="page-title">📝 Button Audit</h2>
+                <p class="helper-text">Check for casing consistency and color contrast compliance.</p>
 
-                <div class="audit-group">
-                    <button id="runLinkAuditBtnOnly" class="btn btn-primary">
-                        <span class="btn-icon">▶️</span> Analyze Buttons
+                <div class="audit-group" style="padding: 10px 0;">
+                    <button id="runButtonAuditBtn" class="btn btn-primary" style="width: 100%;">
+                        <span class="btn-icon">⚡</span> Analyze Casing & Color
                     </button>
                 </div>
 
-                <div id="linkResultsOnly" style="display: none; margin-top: 20px;">
-                    <div class="filter-section">
-                        <div class="filter-chips">
-                            <div class="filter-chip active" data-filter="all">All Items</div>
-                            <div class="filter-chip" data-filter="suspicious">Missing Titles</div>
+                <div id="buttonAuditResults" style="display: none; margin-top: 20px;">
+                    <div id="buttonAuditGrid" class="result-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW TAB: BUTTON ANALYZE -->
+        <div class="tab-content" id="buttonAnalyzeTab">
+            <div class="content-section">
+                <h2 class="page-title">🔗 Button Analyze</h2>
+                <p class="helper-text">Verify that buttons link to correct destinations.</p>
+
+                <div class="audit-group" style="padding: 10px 0;">
+                    <button id="runButtonAnalyzeBtn" class="btn btn-primary" style="width: 100%;">
+                        <span class="btn-icon">▶️</span> Analyze Redirects
+                    </button>
+                </div>
+
+                <div id="buttonAnalyzeResults" style="display: none; margin-top: 20px;">
+                    <div id="buttonAnalyzeGrid" class="result-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW TAB: HYPERLINK DETECTOR -->
+        <div class="tab-content" id="hyperlinksTab">
+            <div class="content-section">
+                <h2 class="page-title">🚀 Hyperlink Detector</h2>
+                <p class="helper-text">Audit all available links including images and text anchors.</p>
+
+                <div class="audit-group" style="padding: 10px 0; display: flex; flex-direction: column; gap: 8px;">
+                    <button id="runHyperlinkAuditBtn" class="btn btn-primary" style="width: 100%;">
+                        <span class="btn-icon">🔍</span> Analyze All Hyperlinks
+                    </button>
+                    
+                    <div id="hyperlinkHighlightActions" style="display: none; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; gap: 8px;">
+                            <button id="highlightAllLinksBtn" class="btn btn-secondary" style="flex: 1;">
+                                <span class="btn-icon">👁️</span> Highlight
+                            </button>
+                            <button id="clearLinkHighlightsBtn" class="btn btn-secondary" style="flex: 1; border-color: rgba(239, 68, 68, 0.4); display: none;">
+                                <span class="btn-icon">🚫</span> Clear
+                            </button>
                         </div>
                     </div>
-                    <div id="linkGridOnly" class="result-list"></div>
+
+                    <button id="deepLinkScanBtn" class="btn btn-secondary" style="width: 100%; border-color: var(--primary); color: var(--primary);">
+                        <span class="btn-icon">🔄</span> Reload & Deep Scan
+                    </button>
+                </div>
+
+                <div id="hyperlinkResultsArea" style="display: none; margin-top: 20px;">
+                    <div id="hyperlinkGrid" class="result-list"></div>
                 </div>
             </div>
         </div>
@@ -761,20 +814,20 @@
             <div class="color-inputs">
                 <div class="input-group">
                     <label>Text Color</label>
+                    <div class="preview-box" id="textPreview"></div>
                     <div class="color-row">
                         <input type="color" id="textColorPicker" value="#000000">
                         <input type="text" id="textColor" value="#000000" placeholder="#000000">
                     </div>
-                    <div class="preview-box" id="textPreview"></div>
                 </div>
 
                 <div class="input-group">
                     <label>Background Color</label>
+                    <div class="preview-box" id="bgPreview"></div>
                     <div class="color-row">
                         <input type="color" id="bgColorPicker" value="#ffffff">
                         <input type="text" id="bgColor" value="#ffffff" placeholder="#ffffff">
                     </div>
-                    <div class="preview-box" id="bgPreview"></div>
                 </div>
             </div>
 

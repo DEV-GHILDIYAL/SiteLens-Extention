@@ -1,104 +1,123 @@
 /* SiteLens - Color Extractor Feature Styles */
 
-#colorExtractorTab .color-chip-grid {
+#colorsTab .color-chip-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
     margin-top: 15px;
     margin-bottom: 25px;
 }
 
-#colorExtractorTab .color-chip {
+#colorsTab .color-chip {
     display: flex;
     align-items: center;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
+    border-radius: 10px;
     overflow: hidden;
     cursor: pointer;
     transition: all 0.2s;
-    height: 48px;
+    height: 44px;
     position: relative;
 }
 
-#colorExtractorTab .color-chip:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+#colorsTab .color-chip:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
     border-color: rgba(99, 102, 241, 0.5);
 }
 
-#colorExtractorTab .color-chip-swatch {
-    width: 44px;
+#colorsTab .color-chip-swatch {
+    width: 40px;
     height: 100%;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
     flex-shrink: 0;
 }
 
-#colorExtractorTab .color-chip-info {
+#colorsTab .color-chip-info {
     flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 0 12px;
+    padding: 0 10px;
     overflow: hidden;
 }
 
-#colorExtractorTab .color-chip-hex {
+#colorsTab .color-chip-hex {
     font-family: "JetBrains Mono", "Roboto Mono", monospace;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
     color: var(--text-main);
 }
 
-#colorExtractorTab .color-chip-action {
-    font-size: 10px;
+#colorsTab .color-chip-action {
+    font-size: 9px;
     font-weight: 600;
     text-transform: uppercase;
     color: var(--text-muted);
     opacity: 0.6;
 }
 
-#colorExtractorTab .color-chip.copied {
+#colorsTab .color-chip.copied {
     background: rgba(16, 185, 129, 0.15) !important;
     border-color: #10b981 !important;
 }
 
-#colorExtractorTab .color-section-header {
+#colorsTab .color-section-header {
     display: flex;
     align-items: center;
     gap: 10px;
+    margin-top: 20px;
     margin-bottom: 12px;
     padding-bottom: 8px;
     border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
-#colorExtractorTab .color-section-header h4 {
+#colorsTab .color-section-header h4 {
     margin: 0;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-dim);
 }
 
-#colorExtractorTab .color-count-pill {
+#colorsTab .color-count-pill {
     background: rgba(255,255,255,0.05);
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 9px;
     color: var(--text-muted);
 }
 
-#colorExtractorTab .mini-palette {
-    display: flex;
-    gap: 6px;
-    margin-top: 10px;
+/* Response Header & Badges */
+.compact-results-header {
+    margin: 15px 0;
+    padding: 12px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.05);
 }
 
-#colorExtractorTab .palette-swatch-sm {
-    width: 28px;
-    height: 28px;
+.result-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.badge-count {
+    background: linear-gradient(135deg, #6366f1, #818cf8);
+    color: white;
+    font-size: 16px;
+    font-weight: 800;
+    padding: 4px 12px;
     border-radius: 8px;
-    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
+}
+
+.badge-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-main);
 }
