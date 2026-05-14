@@ -2823,14 +2823,56 @@ function initializeImageDownloader() {
 
   if (selectAllCheckbox) {
     selectAllCheckbox.addEventListener('change', (e) => {
-      const checkboxes = document.querySelectorAll('.image-checkbox');
+      const checkboxes = document.querySelectorAll('.image-select-checkbox');
+      const items = document.querySelectorAll('.image-download-item');
       checkboxes.forEach(cb => cb.checked = e.target.checked);
+      items.forEach(item => item.classList.toggle('selected', e.target.checked));
       updateSelectionState();
+    });
+  }
+
+}
+
+async function convertAndDownloadWebP(url, filename) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Network response was not ok');
+    const blob = await response.blob();
+    const bitmap = await createImageBitmap(blob);
+    
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0);
+    
+    const webpBlob = await canvas.convertToBlob({ type: 'image/webp', quality: 0.92 });
+    const webpUrl = URL.createObjectURL(webpBlob);
+    
+    // Ensure filename has .webp extension
+    let finalFilename = filename.split('?')[0].split('#')[0];
+    if (finalFilename.includes('.')) {
+      finalFilename = finalFilename.replace(/\.[^/.]+$/, "") + ".webp";
+    } else {
+      finalFilename += ".webp";
+    }
+
+    chrome.downloads.download({
+      url: webpUrl,
+      filename: finalFilename
+    }, () => {
+      setTimeout(() => URL.revokeObjectURL(webpUrl), 1000);
+    });
+  } catch (error) {
+    console.warn('SiteLens: WebP conversion failed (likely CORS), falling back to direct download.', error);
+    chrome.downloads.download({
+      url: url,
+      filename: filename
     });
   }
 }
 
 async function analyzeImages(isDownloader = false) {
+
+
   const btn = isDownloader ? document.getElementById('downloaderAnalyzeBtn') : document.getElementById('imageAnalyzeBtn');
   const results = isDownloader ? document.getElementById('downloaderResults') : document.getElementById('imageResults');
   if (!btn || !results) return;
@@ -2857,17 +2899,21 @@ async function analyzeImages(isDownloader = false) {
       if (response && response.success) {
         results.style.display = 'block';
         if (isDownloader) {
-          const countEl = document.getElementById('downloaderCount');
-          if (countEl) countEl.textContent = response.totalImages;
+          const countBadge = document.getElementById('downloaderCountBadge');
+          if (countBadge) countBadge.textContent = `✦ ${response.totalImages} images found`;
+          
           const bulkActions = document.getElementById('bulkActions');
           if (bulkActions) bulkActions.style.display = 'flex';
+          
           const selectionControl = document.getElementById('selectionControl');
           if (selectionControl) selectionControl.style.display = 'flex';
+          
           renderImageDownloadGrid(document.getElementById('imageDownloadGrid'), response.allImages);
         } else {
           displayImageResults(response);
         }
       }
+
     });
   } catch (e) {
     console.error(e);
@@ -2879,107 +2925,95 @@ async function analyzeImages(isDownloader = false) {
 
 function renderImageDownloadGrid(container, images) {
   if (!container) return;
+  container.className = 'image-download-grid'; 
   container.innerHTML = '';
+  
   if (!images || images.length === 0) {
-    container.innerHTML = '<p>No images found.</p>';
+    container.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: var(--text-dim);">No images identified on this page.</div>';
     return;
   }
 
-  images.forEach(img => {
+  images.forEach((img, idx) => {
     const item = document.createElement('div');
-    item.className = 'image-item';
-    item.innerHTML = `
-          <div class="image-preview-box" style="height: 100px; display: flex; align-items: center; justify-content: center; background: #1a1a1a; overflow: hidden; border-radius: 4px;">
-              <img src="${img.src}" alt="preview" style="max-height: 100%; max-width: 100%; object-fit: contain;">
-          </div>
-          <div class="image-info" style="margin-top: 8px;">
-              <div style="font-size: 11px; font-weight: 600; color: var(--text-main); margin-bottom: 2px;">${img.width} x ${img.height}</div>
-              <div style="color: var(--text-dim); font-size: 9px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 100%;" title="${img.src}">${img.src.substring(0, 30)}...</div>
-          </div>
-          <div class="image-select-overlay">
-              <input type="checkbox" class="image-checkbox">
-          </div>
-          <div class="image-actions">
-              <button class="icon-btn download-img-btn" title="Download">⬇️</button>
-          </div>
-        `;
-
-    const checkbox = item.querySelector('.image-checkbox');
+    item.className = 'image-download-item';
+    item.dataset.url = img.src;
     
-    // Toggle selection on whole card click
+    const filename = img.src.split('/').pop() || `image-${idx}`;
+    const cleanFilename = filename.split('?')[0];
+
+    item.innerHTML = `
+      <input type="checkbox" class="image-select-checkbox">
+      <div class="image-preview-wrapper">
+        <img src="${img.src}" class="image-preview-img" loading="lazy">
+      </div>
+      <div class="image-info">
+        <div class="image-filename" title="${img.src}">${cleanFilename}</div>
+        <div class="image-meta">${img.width}×${img.height} · WEBP</div>
+      </div>
+      <button class="download-img-btn" title="Download as WebP">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+      </button>
+    `;
+
+    const checkbox = item.querySelector('.image-select-checkbox');
+    
     item.addEventListener('click', (e) => {
-      // Don't toggle if clicking download button
       if (e.target.closest('.download-img-btn')) return;
-      
-      // If clicking checkbox directly, it handles itself, but we sync the card class
       if (e.target !== checkbox) {
         checkbox.checked = !checkbox.checked;
       }
-      
-      item.classList.toggle('selected', checkbox.checked);
-      updateSelectionState();
-    });
-
-    checkbox.addEventListener('change', () => {
       item.classList.toggle('selected', checkbox.checked);
       updateSelectionState();
     });
 
     item.querySelector('.download-img-btn').addEventListener('click', (e) => {
       e.stopPropagation();
-      chrome.downloads.download({
-        url: img.src,
-        filename: `image-${Date.now()}.png`
-      });
+      convertAndDownloadWebP(img.src, cleanFilename);
     });
 
     container.appendChild(item);
   });
-
-  const selectAll = document.getElementById('selectAllCheckbox');
-  if (selectAll) {
-    selectAll.disabled = false;
-    selectAll.checked = false;
-  }
 }
 
+
+
 function updateSelectionState() {
-  const checkboxes = document.querySelectorAll('.image-checkbox:checked');
+  const checkboxes = document.querySelectorAll('.image-select-checkbox:checked');
   const count = checkboxes.length;
   const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
-  const countSpan = document.getElementById('selectedCount');
 
-  if (downloadSelectedBtn && countSpan) {
-    countSpan.textContent = count;
+  if (downloadSelectedBtn) {
+    downloadSelectedBtn.innerHTML = `<span class="btn-icon">⬇️</span> Download Selected (${count})`;
     downloadSelectedBtn.disabled = count === 0;
   }
 }
 
+
+
 function downloadAllImages() {
-  const images = document.querySelectorAll('.image-item img');
-  images.forEach((img, i) => {
+  const items = document.querySelectorAll('.image-download-item');
+  items.forEach((item, i) => {
+    const url = item.dataset.url;
     setTimeout(() => {
-      chrome.downloads.download({
-        url: img.src,
-        filename: `all-${i}-${Date.now()}.png`
-      });
+      convertAndDownloadWebP(url, `sitelens-${i}.webp`);
     }, i * 200);
   });
 }
 
 function downloadSelectedImages() {
-  const checkboxes = document.querySelectorAll('.image-checkbox:checked');
-  checkboxes.forEach((cb, i) => {
-    const imgItem = cb.closest('.image-item');
-    const img = imgItem.querySelector('img');
+  const selectedItems = document.querySelectorAll('.image-download-item.selected');
+  selectedItems.forEach((item, i) => {
+    const url = item.dataset.url;
     setTimeout(() => {
-      chrome.downloads.download({
-        url: img.src,
-        filename: `selected-${i}-${Date.now()}.png`
-      });
+      convertAndDownloadWebP(url, `sitelens-selected-${i}.webp`);
     }, i * 200);
   });
 }
+
 
 function initializeColorExtractor() {
   const colorAnalyzeBtn = document.getElementById('colorAnalyzeBtn');
@@ -3087,7 +3121,11 @@ function initializeFeatures() {
   initializeButtonAuditFeature();
   initializeButtonAnalyzeFeature();
   initializeHyperlinkDetector();
+  initializeLoremDetector();
 }
+
+
+
 
 function initializeHyperlinkDetector() {
   const runBtn = document.getElementById('runHyperlinkAuditBtn');
@@ -3398,23 +3436,34 @@ function navigateToFeature(feature) {
   document.getElementById('homeTab').classList.remove('active');
   const tab = document.getElementById(feature.endsWith('Tab') ? feature : feature + 'Tab');
   if (tab) tab.classList.add('active');
+  
   const nav = document.getElementById('backNav');
+  const header = document.getElementById('mainHeader');
   if (nav) nav.style.display = 'block';
+  if (header) header.style.display = 'none';
 
   // Reset internal states of complex features
   if (window.selfAudit) window.selfAudit.resetUI();
 }
+
 window.navigateToFeature = navigateToFeature;
 
 function navigateToHome() {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.getElementById('homeTab').classList.add('active');
-  document.getElementById('backNav').style.display = 'none';
+  
+  const nav = document.getElementById('backNav');
+  const header = document.getElementById('mainHeader');
+  if (nav) nav.style.display = 'none';
+  if (header) header.style.display = 'block';
 
   // Reset internal states
   if (window.selfAudit) window.selfAudit.resetUI();
 }
+
 window.navigateToHome = navigateToHome;
+
+
 
 // Final Initialization
 const viewAboutBtn = document.getElementById('viewAboutBtn');
@@ -3433,6 +3482,6 @@ if (backToHomeBtnFromAbout) {
   });
 }
 
-initializeNavigation();
-initializeFeatures();
-});
+  initializeNavigation();
+  initializeFeatures();
+});

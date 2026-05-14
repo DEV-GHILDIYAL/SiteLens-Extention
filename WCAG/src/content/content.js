@@ -203,6 +203,7 @@
 					handleClearLinkHighlights(sendResponse);
 					return true;
 				default:
+
 					sendResponse({ success: false, error: 'Unknown action: ' + request.action });
 					return false;
 			}
@@ -1187,6 +1188,8 @@
 			}
 		}
 
+
+
 		let currentTooltip = null;
 
 		function handleHighlightLinks(sendResponse) {
@@ -1448,6 +1451,7 @@
 			const contentSelectors = 'p, h1, h2, h3, h4, h5, h6, li, td, th, blockquote, figcaption, span, a, label, div';
 			const elements = Array.from(document.querySelectorAll(contentSelectors)).reverse();
 
+
 			elements.forEach(el => {
 				if (el.offsetParent === null || el.closest('.wcag-overlay')) return;
 				if (['SCRIPT', 'STYLE', 'NOSCRIPT', 'SVG', 'IMG', 'IFRAME'].includes(el.tagName)) return;
@@ -1481,13 +1485,11 @@
 				}
 			});
 
+
+
 			// 5. Analysis Phase 2: Identify Extras (Top-Down)
-			// Only mark elements that:
-			// 1. Are not already marked as found
-			// 2. Don't have any 'found' descendants (fixes the nested extra bug)
-			// 3. Don't have any 'found' ancestors (avoid coloring the whole page red)
 			document.querySelectorAll(contentSelectors).forEach(el => {
-				if (el.offsetParent === null || el.closest('.wcag-overlay')) return;
+
 				if (['SCRIPT', 'STYLE', 'NOSCRIPT', 'SVG', 'IMG', 'IFRAME'].includes(el.tagName)) return;
 				if (el.classList.contains('wcag-diff-found')) return;
 				
@@ -1515,13 +1517,10 @@
 
 			console.log(`✅ Analysis Complete. Matches: ${foundSet.size}, Total Unique Source: ${sourceSet.size}`);
 			
-			return {
-				success: true,
-				matchCount: foundSet.size,
-				totalLines: sourceSet.size,
-				missingLines: missingLines
-			};
 		}
+
+
+
 
 		// End of content script (SafeGuard)
 		// Auto-check for pending tasks on load (Persistence Flow)

@@ -96,6 +96,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	return false;
 });
 
+
+
+
+
+
 async function handleAreaCapture(tab, rect, devicePixelRatio) {
 	try {
 		const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });

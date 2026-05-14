@@ -48,36 +48,35 @@ header .subtitle {
     font-weight: 400;
 }
 
-/* Back Navigation (Sticky) */
+/* Back Navigation (Minimal inside features) */
 .back-nav {
-    background: rgba(15, 23, 42, 0.95);
-    padding: 12px 24px;
+    background: transparent;
+    padding: 8px 12px 4px;
     position: sticky;
     top: 0;
     z-index: 50;
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: none;
     display: none;
 }
 
 .back-btn {
     background: transparent;
     border: none;
-    color: var(--text-muted);
-    font-size: 14px;
-    font-weight: 500;
+    color: #aaa;
+    font-size: 13px;
+    font-weight: 400;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: all 0.2s ease;
-    padding: 6px 0;
+    gap: 4px;
+    transition: color 0.2s ease;
+    padding: 0;
 }
 
 .back-btn:hover {
     color: var(--primary);
-    transform: translateX(-3px);
 }
+
 
 footer {
     text-align: center;
