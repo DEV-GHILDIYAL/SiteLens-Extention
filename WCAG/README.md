@@ -1,180 +1,97 @@
-# Visual Contrast Checker - Chrome Extension
-A Chrome extension that detects color contrast violations based on **rendered visual
-appearance**, not just DOM structure. Specifically designed to catch accessibility issues in
-real-world CMS layouts where text and background colors are defined in different
-elements.
-##
-🎯 Problem Solved
-Most website builders and CMS platforms only check contrast at the component level,
-which fails when:
-- Text elements have no background color defined
-- Background comes from parent containers or sections
-- Hero blocks use background images
-- Semi-transparent overlays are involved
-- Text is absolutely positioned over other elements
-This extension analyzes **what the user actually sees**, not what the CSS says.
-✨ Features
-- ✅ **Visual-based contrast detection** - Analyzes rendered appearance, not CSS
-inheritance
-- ✅ **WCAG 2.1/2.2 compliance** - Checks against AA and AAA standards
-- ✅ **Complex background support** - Handles gradients, images, and layered
-backgrounds
-- ✅ **Real-time highlighting** - Visual overlay shows violations on the page
-- ✅ **Detailed reports** - Export violations as JSON or HTML
-- ✅ **Smart filtering** - Focuses on content text, not UI components
-- ✅ **Keyboard shortcuts** - Press Ctrl+Shift+C to toggle highlights
-## 📦 Installation
-##
-### Load as Unpacked Extension
-1. Download or clone this repository
-2. Open Chrome and go to `chrome://extensions/`
-3. Enable "Developer mode" (toggle in top right)
-4. Click "Load unpacked"
-5. Select the extension directory### File Structure
-```
-visual-contrast-checker/
-├── manifest.json
-├── background.js
-├── content.js
-├── popup.html
-├── popup.js
-├── popup.css
-├── overlay.js
-├── overlay.css
-├── contrast-analyzer.js
-├── text-detector.js
-├── background-sampler.js
-├── color-utils.js
-├── wcag-calculator.js
-├── dom-traverser.js
-├── canvas-processor.js
-├── report-generator.js
-├── storage-manager.js
-├── icon16.png (create or add)
-├── icon48.png (create or add)
-└── icon128.png (create or add)
-```
-##
-🚀 Usage
-### Basic Analysis
-1. Navigate to any webpage
-2. Click the extension icon
-3. Click "Analyze Page"
-4. View violations highlighted on the page
-### Keyboard Shortcut
-Press **Ctrl+Shift+C** anywhere on a page to toggle violation highlights.
-### Export Reports1. After analysis, click "Export Report"
-2. Download JSON file with detailed violation data
-3. Use for documentation or further analysis
-##
-🔧 How It Works
-### Analysis Pipeline
-1. **Text Detection** - Finds all visible text elements on the page
-2. **Background Sampling** - Determines effective background color through:
-- DOM traversal and layer composition
-- Canvas-based pixel sampling for images
-- Multi-point sampling for gradients
-3. **Contrast Calculation** - Uses WCAG 2.1 luminance formulas
-4. **Compliance Check** - Evaluates against AA/AAA standards
-5. **Visual Overlay** - Highlights violations with detailed tooltips
-### Key Components
-- **ColorUtils** - Color parsing and composition
-- **WCAGCalculator** - Contrast ratio calculations
-- **BackgroundSampler** - Effective background detection
-- **TextDetector** - Intelligent text element filtering
-- **ContrastAnalyzer** - Main analysis engine
-- **ContrastOverlay** - Visual violation display
-##
-📊 What Gets Checked
-### Included
-- Paragraph text
-- Headings (h1-h6)
-- Hero text
-- Overlay text
-- Marketing content
-- Any visible text content
-### Excluded
-- Buttons (usually simple to check)
-- Hidden elements
-- Script/style tags- Non-visible content
-##
-🎨 WCAG Standards
-### WCAG AA Requirements
-- **Normal text**: 4.5:1 minimum contrast
-- **Large text** (18pt+ or 14pt+ bold): 3.0:1 minimum
-### WCAG AAA Requirements
-- **Normal text**: 7.0:1 minimum contrast
-- **Large text**: 4.5:1 minimum
-##
-🛠️ Configuration
-Settings are stored in Chrome's local storage and can be modified through the extension
-(future enhancement) or manually:
-```javascript
-{
-autoAnalyze: false,
-wcagLevel: 'AA',
-// Auto-analyze on page load
-// 'AA' or 'AAA'
-includeButtons: false,
-// Include button elements
-showOverlayOnAnalysis: true,
-samplingPoints: 9
-// Number of points to sample
-}
-```
-##
-📝 Report Format
-### JSON Export
-```json
-{
-"url": "https://example.com",
-"timestamp": "2026-01-17T...",
-"summary": {
-"total": 5,
-"byLevel": {
-"failsAA": 5,
-"failsAAA": 3
-}
-},"violations": [...]
-}
-```
-##
-🐛 Known Limitations
-1. **CORS restrictions** - Cannot analyze cross-origin iframes
-2. **Canvas limitations** - Background images may need CORS headers
-3. **Performance** - Large pages (1000+ text elements) may take time
-4. **Dynamic content** - Results reflect page state at analysis time
-##
-🔮 Future Enhancements
-- [ ] Settings UI for configuration
-- [ ] Historical report tracking
-- [ ] Batch analysis across multiple pages
-- [ ] Integration with CI/CD pipelines
-- [ ] Alternative color suggestions
-- [ ] PDF report generation
-##
-📄 License
-MIT License - Feel free to use and modify
-##
-🤝 Contributing
-Contributions welcome! This extension solves a real problem in web accessibility.
-### Development Setup
-1. Make changes to source files
-2. Reload extension in `chrome://extensions/`
-3. Test on various websites
-4. Submit pull request
-##
-💡 Tips
-- Use on CMS-generated pages for best results
-- Check hero sections and marketing layouts
-- Export reports for client documentation
-- Combine with other accessibility tools for comprehensive audits##
-🆘 Support
-For issues or questions, please create a GitHub issue with:
-- Chrome version
-- Example URL (if public)
-- Steps to reproduce
-- Expected vs actual behavior
----
-**Made with
-❤️ for better web accessibility**
+    # SiteLens - The Professional Accessibility & Design Toolkit
+
+    **SiteLens** is a powerful Chrome Extension that transforms how developers and auditors approach WCAG compliance, SEO, and design audits. It analyzes what the user actually sees, providing real-world insights that DOM-only tools often miss.
+
+    ---
+
+    ## ✨ Features Breakdown
+
+    ### 🛠️ Accessibility Audit Module
+    | Feature | Description |
+    | :--- | :--- |
+    | **Contrast Analyzer** | Analyzes rendered appearance (not just CSS) to detect WCAG 2.1 AA/AAA contrast violations across text, images, and gradients. |
+    | **Manual Checker** | A designer's sandbox for testing color combinations. Input hex codes to see live contrast ratios and accessibility results. |
+    | **Image Audit** | Scans for missing `alt` attributes, empty labels, and accessibility issues in image tags to ensure screen-reader compatibility. |
+    | **Button Audit** | Checks button casing (e.g., All Caps vs Sentence Case) and verifies color contrast specifically for interactive elements. |
+    | **Image Integrity** | A site-wide tool that scans multiple URLs to identify duplicate images and repeated assets across different pages. |
+
+    ### 🔍 Navigation & Structure Module
+    | Feature | Description |
+    | :--- | :--- |
+    | **Hyperlink Detector** | Crawls the page (including lazy-loaded content) to list all links, check for broken paths, and verify destination titles. |
+    | **Button Analyze** | Specifically targets buttons to verify their redirect destinations and ensure they lead to the correct internal or external pages. |
+    | **SEO Audit** | Extracts and analyzes Meta Titles, Descriptions, and Open Graph tags to ensure the page is search-engine ready. |
+    | **Font Audit** | Visualizes the heading hierarchy (H1-H6) and checks font properties like weight and size for structural consistency. |
+
+    ### 🎨 Design & Assets Module
+    | Feature | Description |
+    | :--- | :--- |
+    | **Color Extractor** | Automatically builds a color palette by extracting every unique color used in the site's CSS and assets. |
+    | **Theme Generator** | Takes brand colors and generates WCAG-compliant variations for backgrounds, text, and accents. |
+    | **Image Downloader** | Finds all images on a page (including CSS backgrounds) and allows for individual or bulk downloading. |
+    | **Screenshot Tool** | High-quality captures of the visible screen, the entire scrollable page, or a custom-selected area. |
+
+    ### 📝 Content Tools Module
+    | Feature | Description |
+    | :--- | :--- |
+    | **Content Check** | Compare on-page text against uploaded documents (.txt, .docx) to verify that marketing copy or legal text is present. |
+    | **Content Splitter** | Deconstructs long-form content into manageable segments based on headings, making it easier to audit specific sections. |
+    | **Lorem Detector** | Scans for placeholder text like "Lorem Ipsum" to prevent accidental production deployments of unfinished copy. |
+    | **AI Self-Audit** | A sophisticated simulation of human auditing that checks dynamic elements and complex UI interactions for accessibility gaps. |
+    | **Alt Text Gen** | Generates SEO-optimized, descriptive alt text for images based on company, page, and image context. |
+
+    ---
+
+    ## 🔧 Technical Overview
+
+    ### Analysis Engine
+    SiteLens uses a multi-layered analysis pipeline:
+    1.  **DOM Traversal**: Intelligent filtering of visible content vs. hidden UI.
+    2.  **Visual Sampling**: Canvas-based pixel analysis for handling gradients and background images.
+    3.  **Luminance Calculation**: Precise WCAG formulas for calculating contrast ratios.
+    4.  **Reporting**: Exportable JSON/HTML reports for documentation and handoffs.
+
+    ### Key Components
+    - `contrast-analyzer.js`: Core engine for color and contrast logic.
+    - `text-detector.js`: Filters content text from decorative or UI elements.
+    - `background-sampler.js`: Composite sampling for complex backgrounds.
+    - `font-analyzer.js`: Logic for heading hierarchy and typography audits.
+    - `seo-analyzer.js`: Meta tag and structure validation.
+
+    ---
+
+    ## 📦 Installation
+
+    1.  Clone this repository: `git clone https://github.com/DEV-GHILDIYAL/SiteLens-Extention.git`
+    2.  Navigate to `chrome://extensions/` in Google Chrome.
+    3.  Enable **Developer mode** (top right toggle).
+    4.  Click **Load unpacked** and select the `/WCAG` folder from the project directory.
+
+    ---
+
+    ## 🚀 Usage
+
+    1.  Open the Chrome **Side Panel** (usually via the extension icon).
+    2.  Navigate to the page you wish to audit.
+    3.  Select a feature category (e.g., **Accessibility Audit**).
+    4.  Click on a feature card (e.g., **Contrast Analyzer**).
+    5.  Press the **Analyze** button to start the audit.
+    6.  Use the **Back to Features** button to switch between tools.
+
+    ---
+
+    ## 📊 WCAG Standards Compliance
+    - **AA Requirements**: 4.5:1 for normal text, 3:1 for large text.
+    - **AAA Requirements**: 7:1 for normal text, 4.5:1 for large text.
+
+    ---
+
+    ## 👨‍💻 Developer Spotlight
+    **Dev Lalit Ghildiyal**
+    *   **Background**: B.Sc. Computer Science (CGPA: 9.02)
+    *   **Specialization**: MERN Stack, Data Analytics, Python Automation.
+    *   **Goal**: Building tools that bridge the gap between design and accessibility.
+
+    ---
+
+    **Made with ❤️ by DEV GHILDIYAL**
